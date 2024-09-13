@@ -1,7 +1,7 @@
 const express = require("express");
 const Course = require("../model/Course");
 const router = express.Router();
-
+const db = require("../config/dbConfig");
 router.get("/", async (req, res) => {
   try {
     const [rows] = await Course.findAll();
@@ -42,7 +42,6 @@ router.get("/search", async (req, res) => {
   }
 });
 
-// POST a new course
 router.post("/", async (req, res) => {
   try {
     const result = await Course.create(req.body);
@@ -98,7 +97,6 @@ router.get("/pagination", async (req, res) => {
   offset = parseInt(offset, 10);
   limit = parseInt(limit, 10);
 
-  // Validate the parameters to ensure they are numbers
   if (isNaN(offset) || isNaN(limit)) {
     return res.status(400).json({ message: "Invalid offset or limit" });
   }
@@ -117,12 +115,38 @@ router.get("/pagination", async (req, res) => {
     });
   } catch (error) {
     console.error("Error while fetching paginated courses:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error getting paginated courses",
-        error: error.message,
+    res.status(500).json({
+      message: "Error getting paginated courses",
+      error: error.message,
+    });
+  }
+});
+
+router.get("/category/:category", async (req, res) => {
+  const category = req.params.category;
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM courses WHERE category LIKE ?",
+      [`%${category}%`]
+    );
+
+    if (rows.length > 0) {
+      res.json({
+        success: true,
+        data: rows,
       });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "No courses found for this category",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching courses by category",
+      error: error.message,
+    });
   }
 });
 
