@@ -53,7 +53,8 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-
+    const lastLoginTime = new Date();
+    await User.updateLastLogin(user.id, lastLoginTime);
     const updateResult = await User.updateAccessToken(user.id, token);
 
     res.json({ message: "Login successful", token, role: user.role });
@@ -64,4 +65,24 @@ exports.login = async (req, res) => {
       .json({ message: "Error during login", error: error.message });
   }
 };
+exports.logout = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(403).json({ message: "No token provided" });
+    }
 
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decodedToken.id;
+
+    const lastLogoutTime = new Date();
+    await User.updateLastLogout(userId, lastLogoutTime);
+
+    res.json({ message: "Logout successful" });
+  } catch (error) {
+    console.error("Error during logout:", error);
+    res
+      .status(500)
+      .json({ message: "Error during logout", error: error.message });
+  }
+};

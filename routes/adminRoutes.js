@@ -2,7 +2,13 @@ const express = require("express");
 const router = express.Router();
 const User = require("../model/User");
 const jwt = require("jsonwebtoken");
-const { updateUserRole, getUsers } = require("../controllers/adminController");
+const {
+  updateUserRole,
+  getUsers,
+  updateUser,
+  deleteUser,
+} = require("../controllers/adminController");
+const { logout } = require("../controllers/authController");
 
 // Middleware kiểm tra quyền admin
 const isAdmin = (req, res, next) => {
@@ -14,7 +20,6 @@ const isAdmin = (req, res, next) => {
   try {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
     if (decodedToken.role !== 1) {
-      // role = 1 là Admin
       return res.status(403).json({ message: "Unauthorized access" });
     }
     req.user = decodedToken;
@@ -24,7 +29,10 @@ const isAdmin = (req, res, next) => {
   }
 };
 
-router.put("/users/:id", isAdmin, updateUserRole);
+router.put("/users/role/:id", isAdmin, updateUser);
+router.put("/users/info/:id", isAdmin, updateUser);
+router.delete("/users/delete/:id", isAdmin, deleteUser);
 router.get("/users", isAdmin, getUsers);
+router.get("/logout", isAdmin, logout);
 
 module.exports = router;

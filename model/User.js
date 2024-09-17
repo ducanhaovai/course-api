@@ -28,7 +28,7 @@ const User = {
       const [rows] = await db.query("SELECT * FROM users WHERE email = ?", [
         email,
       ]);
-      return rows[0]; // Trả về người dùng đầu tiên tìm thấy
+      return rows[0];
     } catch (error) {
       console.error("Error finding user by email:", error);
       throw new Error("Unable to find user by email");
@@ -70,19 +70,68 @@ const User = {
     }
   },
   update: async (data, options) => {
-    const { role } = data;
+    const { role, username, email } = data;
     const { where } = options;
     const userId = where.id;
 
     try {
-      const [result] = await db.query(
-        "UPDATE users SET role = ? WHERE id = ?",
-        [role, userId]
-      );
+      const queryParts = [];
+      const queryParams = [];
+
+      if (role) {
+        queryParts.push("role = ?");
+        queryParams.push(role);
+      }
+      if (username) {
+        queryParts.push("username = ?");
+        queryParams.push(username);
+      }
+      if (email) {
+        queryParts.push("email = ?");
+        queryParams.push(email);
+      }
+
+      const query = `UPDATE users SET ${queryParts.join(", ")} WHERE id = ?`;
+      queryParams.push(userId);
+
+      const [result] = await db.query(query, queryParams);
       return result;
     } catch (error) {
       console.error("Error updating user role:", error);
       throw new Error("Error updating user role");
+    }
+  },
+  updateLastLogin: async (id, lastLoginTime) => {
+    try {
+      const [result] = await db.query(
+        "UPDATE users SET last_login = ? WHERE id = ?",
+        [lastLoginTime, id]
+      );
+      return result;
+    } catch (error) {
+      console.error("Error updating last login time:", error);
+      throw new Error("Unable to update last login time");
+    }
+  },
+  updateLastLogout: async (id, lastLogoutTime) => {
+    try {
+      const [result] = await db.query(
+        "UPDATE users SET last_logout = ? WHERE id = ?",
+        [lastLogoutTime, id]
+      );
+      return result;
+    } catch (error) {
+      console.error("Error updating last logout time:", error);
+      throw new Error("Unable to update last logout time");
+    }
+  },
+  delete: async (id) => {
+    try {
+      const [result] = await db.query("DELETE FROM users WHERE id = ?", [id]);
+      return result;
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      throw new Error("Unable to delete user");
     }
   },
 };
