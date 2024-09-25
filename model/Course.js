@@ -13,31 +13,27 @@ class Course {
   }
   static create(data) {
     return db.query(
-      "INSERT INTO courses (title, description, instructor, price, duration, category, level, language, thumbnail, published_date, status, rating, total_enrollments, pdf_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO courses (title, description, instructor_id, price, duration, level, thumbnail, published_date, status,  pdf_url , category_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         data.title,
         data.description,
-        data.instructor,
+        data.instructor_id,
         data.price,
         data.duration,
-        data.category,
         data.level,
-        data.language,
         data.thumbnail,
         data.published_date,
         data.status,
-        data.rating,
-        data.total_enrollments,
         data.pdf_url,
+        data.category_id,
       ]
     );
   }
 
-  static update(title, data) {
+  static update(id, data) {
     let query = "UPDATE courses SET ";
     let parameters = [];
     let updates = [];
-
     for (const [key, value] of Object.entries(data)) {
       if (value !== undefined) {
         updates.push(`${key} = ?`);
@@ -45,8 +41,8 @@ class Course {
       }
     }
 
-    query += updates.join(", ") + " WHERE LOWER(title) = LOWER(?)";
-    parameters.push(title);
+    query += updates.join(", ") + " WHERE id = ?";
+    parameters.push(id);
 
     if (updates.length > 0) {
       return db.query(query, parameters).then((result) => result[0]);

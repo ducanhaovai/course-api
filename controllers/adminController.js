@@ -10,7 +10,14 @@ exports.getUsers = async (req, res) => {
       .json({ message: "Error fetching users", error: error.message });
   }
 };
-
+exports.getInstructors = async (req, res) => {
+  try {
+    const instructors = await User.findAllByRole(2);
+    res.json({ instructors });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching instructors", error });
+  }
+};
 exports.updateUser = async (req, res) => {
   const { role, username, email } = req.body;
   const userId = req.params.id;
@@ -35,7 +42,7 @@ exports.deleteUser = async (req, res) => {
   const userId = req.params.id;
 
   try {
-    const result = await User.delete(userId); 
+    const result = await User.delete(userId);
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "User deleted successfully" });
     } else {
@@ -46,6 +53,19 @@ exports.deleteUser = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error deleting user", error: error.message });
+  }
+};
+
+exports.getInstructors = async (req, res) => {
+  try {
+    const instructors = await Instructor.findAll({
+      where: { role: 2 },
+      attributes: ["id", "username"],
+    });
+    res.status(200).json(instructors);
+  } catch (error) {
+    console.error("Error fetching instructors:", error);
+    res.status(500).json({ error: "Error fetching instructors" });
   }
 };
 

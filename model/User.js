@@ -35,7 +35,6 @@ const User = {
     }
   },
 
-  // Cập nhật access_token cho người dùng
   updateAccessToken: async (id, token) => {
     try {
       const [result] = await db.query(
@@ -133,6 +132,9 @@ const User = {
       console.error("Error deleting user:", error);
       throw new Error("Unable to delete user");
     }
+  },
+  findAllByRole(role) {
+    return db.query("SELECT id, username FROM users WHERE role = ?", [role]);
   },
 };
 

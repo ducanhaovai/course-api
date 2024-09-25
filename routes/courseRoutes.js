@@ -2,6 +2,7 @@ const express = require("express");
 const Course = require("../model/Course");
 const router = express.Router();
 const db = require("../config/dbConfig");
+const { updateCourse } = require("../controllers/courseController");
 router.get("/", async (req, res) => {
   try {
     const [rows] = await Course.findAll();
@@ -149,5 +150,6 @@ router.get("/category/:category", async (req, res) => {
     });
   }
 });
+router.put("/courses/:id", updateCourse);
 
 module.exports = router;

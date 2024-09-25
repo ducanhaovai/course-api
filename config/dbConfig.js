@@ -1,10 +1,8 @@
 const mysql = require("mysql2");
 const dotenv = require("dotenv");
 
-// Load environment variables from the .env file
 dotenv.config();
 
-// Create a MySQL pool with environment variables
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -19,7 +17,6 @@ const pool = mysql.createPool({
 
 module.exports = pool.promise();
 
-// Test the database connection
 pool
   .promise()
   .query("SELECT 1 + 1 AS result")

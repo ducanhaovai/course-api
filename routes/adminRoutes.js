@@ -7,10 +7,10 @@ const {
   getUsers,
   updateUser,
   deleteUser,
+  getInstructors,
 } = require("../controllers/adminController");
 const { logout } = require("../controllers/authController");
 
-// Middleware kiểm tra quyền admin
 const isAdmin = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) {
@@ -34,5 +34,5 @@ router.put("/users/info/:id", isAdmin, updateUser);
 router.delete("/users/delete/:id", isAdmin, deleteUser);
 router.get("/users", isAdmin, getUsers);
 router.get("/logout", isAdmin, logout);
-
+router.get("/instructors", isAdmin, getInstructors);
 module.exports = router;
