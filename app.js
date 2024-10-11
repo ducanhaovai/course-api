@@ -5,11 +5,14 @@ const courseRoutes = require("./routes/courseRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
-
+const enrollmentRoutes = require("./routes/enrollmentRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const courseSectionRoutes = require("./routes/courseSectionRoutes");
+const courseContentRoutes = require("./routes/courseContentRoutes");
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "http://localhost:3000",
     methods: "GET,POST,PUT,DELETE",
     credentials: true,
   })
@@ -21,7 +24,10 @@ app.use("/categories", categoryRoutes);
 app.use("/courses", courseRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
-
+app.use("/api/enrollments", enrollmentRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/sections", courseSectionRoutes);
+app.use("/api/content", courseContentRoutes);
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

@@ -69,7 +69,7 @@ const User = {
     }
   },
   update: async (data, options) => {
-    const { role, username, email } = data;
+    const { role, username, email, status } = data;
     const { where } = options;
     const userId = where.id;
 
@@ -88,6 +88,10 @@ const User = {
       if (email) {
         queryParts.push("email = ?");
         queryParams.push(email);
+      }
+      if (status) {
+        queryParts.push("status = ?");
+        queryParams.push(status);
       }
 
       const query = `UPDATE users SET ${queryParts.join(", ")} WHERE id = ?`;

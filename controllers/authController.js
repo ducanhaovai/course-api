@@ -8,7 +8,6 @@ exports.register = async (req, res) => {
   const { username, email, password, first_name, last_name } = req.body;
 
   try {
-    // Check if the email already exists
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res.status(400).json({ message: "Email already in use" });
@@ -41,15 +40,26 @@ exports.login = async (req, res) => {
     const user = await User.findByEmail(email);
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res
+        .status(401)
+        .json({ message: "Email hoặc mật khẩu không chính xác." });
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res
+        .status(401)
+        .json({ message: "Email hoặc mật khẩu không chính xác." });
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        status: user.status,
+        first_name: user.first_name,
+        last_name: user.last_name,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );

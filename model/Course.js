@@ -13,14 +13,13 @@ class Course {
   }
   static create(data) {
     return db.query(
-      "INSERT INTO courses (title, description, instructor_id, price, duration, level, thumbnail, published_date, status,  pdf_url , category_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO courses (title, description, instructor_id, price, duration,  thumbnail, published_date, status,  pdf_url , category_id) VALUES (?,  ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         data.title,
         data.description,
         data.instructor_id,
         data.price,
         data.duration,
-        data.level,
         data.thumbnail,
         data.published_date,
         data.status,

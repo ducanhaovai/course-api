@@ -19,12 +19,12 @@ exports.getInstructors = async (req, res) => {
   }
 };
 exports.updateUser = async (req, res) => {
-  const { role, username, email } = req.body;
+  const { role, username, email, status } = req.body;
   const userId = req.params.id;
 
   try {
     const result = await User.update(
-      { role, username, email },
+      { role, username, email, status },
       { where: { id: userId } }
     );
     if (result.affectedRows > 0) {
