@@ -1,19 +1,50 @@
 const db = require("../config/dbConfig");
-
+const slugify = require("slugify");
 class Course {
   static findAll() {
-    return db.query("SELECT * FROM courses");
+    return db.query(
+      `SELECT courses.*, categories.name AS category_name, users.first_name AS instructor_first_name, users.last_name AS instructor_last_name 
+       FROM courses 
+       LEFT JOIN categories ON courses.category_id = categories.id
+       LEFT JOIN users ON courses.instructor_id = users.id`
+    );
   }
   static findById(id) {
-    return db.query("SELECT * FROM courses WHERE id = ?", [id]);
+    return db.query(
+      `SELECT courses.*, 
+            categories.name AS category_name, 
+            users.first_name AS instructor_first_name, 
+            users.last_name AS instructor_last_name, 
+            (SELECT COUNT(*) FROM course_sections WHERE course_sections.course_id = courses.id) AS total_sections 
+     FROM courses 
+     LEFT JOIN categories ON courses.category_id = categories.id 
+     LEFT JOIN users ON courses.instructor_id = users.id 
+     WHERE courses.id = ?`,
+      [id]
+    );
+  }
+  static findBySlug(slug) {
+    return db.query(
+      `SELECT courses.*, categories.name AS category_name, users.first_name AS instructor_first_name, users.last_name AS instructor_last_name 
+       FROM courses 
+       LEFT JOIN categories ON courses.category_id = categories.id 
+       LEFT JOIN users ON courses.instructor_id = users.id 
+       WHERE courses.slug = ?`,
+      [slug]
+    );
   }
 
   static findByTitle(title) {
-    return db.query("SELECT * FROM courses WHERE title LIKE ?", [`%${title}%`]);
+    `SELECT courses.*, categories.name AS name 
+    FROM courses 
+    LEFT JOIN categories ON courses.category_id = categories.id 
+    WHERE courses.title LIKE ?`,
+      [`%${title}%`];
   }
   static create(data) {
+    const slug = slugify(data.title, { lower: true, strict: true });
     return db.query(
-      "INSERT INTO courses (title, description, instructor_id, price, duration,  thumbnail, published_date, status,  pdf_url , category_id) VALUES (?,  ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO courses (title, description, instructor_id, price, duration,  thumbnail, published_date, status,  pdf_url , category_id, slug) VALUES (?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         data.title,
         data.description,
@@ -25,6 +56,7 @@ class Course {
         data.status,
         data.pdf_url,
         data.category_id,
+        slug,
       ]
     );
   }
@@ -54,7 +86,11 @@ class Course {
     return db.query("DELETE FROM courses WHERE id = ?", [id]);
   }
   static findPagination(offset, limit) {
-    return db.query("SELECT * FROM courses LIMIT ? OFFSET ?", [limit, offset]);
+    `SELECT courses.*, categories.name AS name 
+       FROM courses 
+       LEFT JOIN categories ON courses.category_id = categories.id 
+       LIMIT ? OFFSET ?`,
+      [limit, offset];
   }
   static countAll() {
     return db.query("SELECT COUNT(*) AS total FROM courses");

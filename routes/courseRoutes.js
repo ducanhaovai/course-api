@@ -5,6 +5,7 @@ const router = express.Router();
 // Các endpoint khác
 router.get("/", courseController.getCourse);
 router.get("/:id", courseController.getCourseID);
+router.get("/:slug", courseController.getCourseBySlug);
 router.get("/search", courseController.getCourseSearch);
 router.post("/", courseController.createCourse);
 router.put("/:id", courseController.updateCourse);

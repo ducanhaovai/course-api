@@ -1,139 +1,63 @@
 const Payment = require("../model/Payment");
+const Enrollment = require("../model/Enrollments");
 
-// Lấy tất cả bản ghi payments
-exports.getAllPayments = async (req, res) => {
-  0;
-  try {
-    const [rows] = await Payment.findAll();
-    res.json(rows);
-  } catch (error) {
-    console.error("Error fetching payments:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching payments", error: error.message });
+exports.processPayment = async (req, res) => {
+  const { user_id, course_id, amount, payment_method, transaction_id } =
+    req.body;
+
+  // Check if required fields are provided
+  if (!user_id || !course_id || !amount) {
+    return res.status(400).json({
+      message: "Missing required fields: user_id, course_id, or amount",
+    });
   }
-};
 
-// Tìm một payment theo ID
-exports.getPaymentById = async (req, res) => {
+  const paymentDate = new Date();
+
   try {
-    const [rows] = await Payment.findById(req.params.id);
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Payment not found" });
+    // Create enrollment with status 'pending'
+    const [enrollmentResult] = await Enrollment.create({
+      user_id,
+      course_id,
+      purchase_date: paymentDate,
+      enrollment_status: "pending", // Set enrollment status to 'pending'
+      payment_proof: null, // Assuming payment proof will be provided later
+    });
+
+    if (!enrollmentResult || !enrollmentResult.insertId) {
+      console.error("Failed to create enrollment");
+      return res.status(500).json({ message: "Failed to create enrollment" });
     }
-    res.json(rows[0]);
-  } catch (error) {
-    console.error("Error fetching payment:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching payment", error: error.message });
-  }
-};
 
-// Tìm một payment theo transaction_id
-exports.getPaymentByTransactionId = async (req, res) => {
-  try {
-    const [rows] = await Payment.findByTransaction_id(
-      req.params.transaction_id
-    );
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Payment not found" });
-    }
-    res.json(rows[0]);
-  } catch (error) {
-    console.error("Error fetching payment:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching payment", error: error.message });
-  }
-};
+    const enrollmentId = enrollmentResult.insertId; // Get the generated enrollment ID
 
-// Tạo một payment mới
-exports.createPayment = async (req, res) => {
-  const {
-    enrollments_id,
-    amount,
-    payment_method,
-    payment_status,
-    transaction_id,
-    payment_date,
-  } = req.body;
-  try {
-    const [result] = await Payment.create({
-      enrollments_id,
+    // Process the payment using the enrollmentId
+    const payment = await Payment.create({
+      enrollment_id: enrollmentId,
       amount,
       payment_method,
-      payment_status,
       transaction_id,
-      payment_date,
+      payment_date: paymentDate,
+      payment_status: "completed", // Assume the payment is completed
+      refund_status: "not_requested", // Default refund status
+      refund_amount: 0, // No refund initially
     });
-    res.status(201).json({
-      message: "Payment created successfully",
-      paymentId: result.insertId,
-    });
-  } catch (error) {
-    console.error("Error creating payment:", error);
-    res
-      .status(500)
-      .json({ message: "Error creating payment", error: error.message });
-  }
-};
 
-// Cập nhật một payment theo ID
-exports.updatePayment = async (req, res) => {
-  const { id } = req.params;
-  const data = req.body;
-  try {
-    const result = await Payment.update(id, data);
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Payment not found" });
-    }
-    res.json({ message: "Payment updated successfully" });
-  } catch (error) {
-    console.error("Error updating payment:", error);
-    res
-      .status(500)
-      .json({ message: "Error updating payment", error: error.message });
-  }
-};
+    // Debugging log to check payment creation
+    console.log("Payment result: ", payment);
 
-// Xóa một payment theo ID
-exports.deletePayment = async (req, res) => {
-  try {
-    const result = await Payment.deleteById(req.params.id);
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Payment not found" });
-    }
-    res.json({ message: "Payment deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting payment:", error);
-    res
-      .status(500)
-      .json({ message: "Error deleting payment", error: error.message });
-  }
-};
+    // Update the enrollment status to 'completed' after successful payment
+    await Enrollment.update(enrollmentId, { enrollment_status: "completed" });
 
-// Phân trang payments
-exports.getPaymentsByPagination = async (req, res) => {
-  const { page = 1, limit = 10 } = req.query; // Mặc định page=1, limit=10
-  const offset = (page - 1) * limit;
-
-  try {
-    const [rows] = await Payment.findPagination(
-      parseInt(offset),
-      parseInt(limit)
-    );
-    const [total] = await Payment.countAll();
-    res.json({
-      payments: rows,
-      total: total[0].total,
-      page: parseInt(page),
-      limit: parseInt(limit),
+    return res.status(200).json({
+      message: "Payment and enrollment successful",
+      enrollmentId,
     });
   } catch (error) {
-    console.error("Error fetching payments:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching payments", error: error.message });
+    console.error("Error processing payment:", error);
+    return res.status(500).json({
+      message: "Error processing payment",
+      error: error.message,
+    });
   }
 };

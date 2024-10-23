@@ -1,12 +1,10 @@
 const express = require("express");
-const enrollmentController = require("../controllers/enrollmentController");
 const router = express.Router();
+const enrollmentsController = require("../controllers/enrollmentsController");
 
-router.get("/", enrollmentController.getAllEnrollments);
-router.get("/:id", enrollmentController.getEnrollmentById);
-router.post("/", enrollmentController.createEnrollment);
-router.put("/:id", enrollmentController.updateEnrollment);
-router.delete("/:id", enrollmentController.deleteEnrollment);
-router.get("/pagination", enrollmentController.getEnrollmentsByPagination);
-
+router.post("/enroll", enrollmentsController.enrollUser);
+router.get(
+  "/status/:user_id/:course_id",
+  enrollmentsController.checkEnrollmentStatus
+);
 module.exports = router;

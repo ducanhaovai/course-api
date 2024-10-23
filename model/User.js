@@ -137,8 +137,27 @@ const User = {
       throw new Error("Unable to delete user");
     }
   },
-  findAllByRole(role) {
+  findAllByRole: async (role) => {
     return db.query("SELECT id, username FROM users WHERE role = ?", [role]);
+  },
+  removeRefreshToken: async (refreshToken) => {
+    return db.query(
+      "UPDATE users SET access_token = NULL WHERE access_token = ?",
+      [refreshToken]
+    );
+  },
+  updateRefreshToken: async (id, refreshToken) => {
+    return db.query("UPDATE users SET access_token = ? WHERE id = ?", [
+      refreshToken,
+      id,
+    ]);
+  },
+  findByRefreshToken: async (refreshToken) => {
+    const [rows] = await db.query(
+      "SELECT * FROM users WHERE access_token = ?",
+      [refreshToken]
+    );
+    return rows[0];
   },
 };
 
