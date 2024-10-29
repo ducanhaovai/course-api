@@ -39,7 +39,11 @@ exports.updateCourse = async (req, res) => {
 exports.getCourse = async (req, res) => {
   try {
     const [rows] = await Course.findAll();
-    res.json(rows);
+    const formattedCourses = rows.map((course) => ({
+      ...course,
+      sections: course.sections ? JSON.parse(course.sections) : [],
+    }));
+    res.json(formattedCourses);
   } catch (error) {
     console.error("Error while fetching courses:", error);
     res
@@ -48,9 +52,8 @@ exports.getCourse = async (req, res) => {
   }
 };
 exports.getCourseID = async (req, res) => {
-  const courseId = req.params.id; // Lấy courseId từ URL parameter
+  const courseId = req.params.id;
   try {
-    // Kiểm tra nếu courseId có tồn tại trong request
     if (!courseId) {
       return res.status(400).json({ message: "No search parameters provided" });
     }
@@ -167,7 +170,6 @@ exports.createCourseWithSections = async (req, res) => {
       thumbnail,
     });
 
-    // Kiểm tra xem `courseResult` trả về có `insertId` hoặc `id` hay không
     const courseId = courseResult.insertId || courseResult.id;
     if (!courseId) {
       return res
@@ -175,9 +177,6 @@ exports.createCourseWithSections = async (req, res) => {
         .json({ message: "Failed to create course. `course_id` is null." });
     }
 
-    console.log("Course ID:", courseId);
-
-    // Tạo các phần (sections) cho khóa học
     if (sections && sections.length > 0) {
       for (const section of sections) {
         const [sectionResult] = await CourseSections.create({

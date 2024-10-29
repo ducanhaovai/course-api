@@ -15,21 +15,39 @@ exports.processPayment = async (req, res) => {
   const paymentDate = new Date();
 
   try {
-    // Create enrollment with status 'pending'
-    const [enrollmentResult] = await Enrollment.create({
+    // Check if the user is already enrolled in the course
+    const existingEnrollment = await Enrollment.findEnrollmentByUserAndCourse(
       user_id,
-      course_id,
-      purchase_date: paymentDate,
-      enrollment_status: "pending", // Set enrollment status to 'pending'
-      payment_proof: null, // Assuming payment proof will be provided later
-    });
+      course_id
+    );
 
-    if (!enrollmentResult || !enrollmentResult.insertId) {
-      console.error("Failed to create enrollment");
-      return res.status(500).json({ message: "Failed to create enrollment" });
+    let enrollmentId;
+    if (existingEnrollment && existingEnrollment.length > 0) {
+      // If there's already an enrollment, use the existing enrollment ID
+      enrollmentId = existingEnrollment[0].id;
+
+      if (existingEnrollment[0].enrollment_status === "completed") {
+        return res
+          .status(400)
+          .json({ message: "User already completed this course." });
+      }
+    } else {
+      // Create enrollment with status 'pending'
+      const [enrollmentResult] = await Enrollment.create({
+        user_id,
+        course_id,
+        purchase_date: paymentDate,
+        enrollment_status: "pending", // Set enrollment status to 'pending'
+        payment_proof: null, // Assuming payment proof will be provided later
+      });
+
+      if (!enrollmentResult || !enrollmentResult.insertId) {
+        console.error("Failed to create enrollment");
+        return res.status(500).json({ message: "Failed to create enrollment" });
+      }
+
+      enrollmentId = enrollmentResult.insertId; // Get the generated enrollment ID
     }
-
-    const enrollmentId = enrollmentResult.insertId; // Get the generated enrollment ID
 
     // Process the payment using the enrollmentId
     const payment = await Payment.create({
@@ -42,9 +60,6 @@ exports.processPayment = async (req, res) => {
       refund_status: "not_requested", // Default refund status
       refund_amount: 0, // No refund initially
     });
-
-    // Debugging log to check payment creation
-    console.log("Payment result: ", payment);
 
     // Update the enrollment status to 'completed' after successful payment
     await Enrollment.update(enrollmentId, { enrollment_status: "completed" });

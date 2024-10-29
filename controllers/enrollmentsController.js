@@ -1,6 +1,6 @@
 const Enrollment = require("../model/Enrollments");
 const Course = require("../model/Course");
-
+const jwt = require("jsonwebtoken");
 exports.enrollUser = async (req, res) => {
   const { user_id, course_id } = req.body;
   const purchaseDate = new Date();
@@ -37,36 +37,32 @@ exports.enrollUser = async (req, res) => {
   }
 };
 exports.checkEnrollmentStatus = async (req, res) => {
-  const { user_id, course_id } = req.params;
-
   try {
+    const { course_id } = req.params;
+    const token = req.headers.authorization.split(" ")[1];
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const user_id = decodedToken.id;
+
     const enrollment = await Enrollment.findEnrollmentByUserAndCourse(
       user_id,
       course_id
     );
 
-    if (enrollment.length === 0) {
-      return res.status(403).json({ message: "User not enrolled." });
+    // Kiểm tra nếu mảng enrollment tồn tại và có phần tử đầu tiên [0][0]
+    if (!enrollment || enrollment.length === 0 || !enrollment[0] || !enrollment[0][0]) {
+      return res.status(200).json({
+        message: "User not enrolled in this course",
+        enrollmentStatus: "not_enrolled",
+      });
     }
 
-    const enrollmentStatus = enrollment[0].enrollment_status;
-
-    if (enrollmentStatus !== "completed") {
-      return res
-        .status(403)
-        .json({
-          message: "Enrollment is pending or canceled.",
-          enrollmentStatus,
-        });
-    }
-
-    return res
-      .status(200)
-      .json({ message: "User is enrolled in this course.", enrollmentStatus });
+    const enrollmentStatus = enrollment[0][0].enrollment_status; // Truy cập đúng cấp mảng
+    return res.status(200).json({ enrollmentStatus });
   } catch (error) {
     console.error("Error checking enrollment status:", error);
     return res
       .status(500)
-      .json({ message: "Failed to check enrollment status." });
+      .json({ message: "Failed to check enrollment status" });
   }
 };
+
