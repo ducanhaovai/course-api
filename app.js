@@ -9,6 +9,10 @@ const enrollmentRoutes = require("./routes/enrollmentRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const courseSectionRoutes = require("./routes/courseSectionRoutes");
 const courseContentRoutes = require("./routes/courseContentRoutes");
+const videoRoutes = require("./routes/videoRoutes");
+
+
+
 const app = express();
 app.use(
   cors({
@@ -28,6 +32,8 @@ app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/sections", courseSectionRoutes);
 app.use("/api/content", courseContentRoutes);
+app.use("/api/video", videoRoutes);
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

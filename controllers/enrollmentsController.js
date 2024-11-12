@@ -49,7 +49,12 @@ exports.checkEnrollmentStatus = async (req, res) => {
     );
 
     // Kiểm tra nếu mảng enrollment tồn tại và có phần tử đầu tiên [0][0]
-    if (!enrollment || enrollment.length === 0 || !enrollment[0] || !enrollment[0][0]) {
+    if (
+      !enrollment ||
+      enrollment.length === 0 ||
+      !enrollment[0] ||
+      !enrollment[0][0]
+    ) {
       return res.status(200).json({
         message: "User not enrolled in this course",
         enrollmentStatus: "not_enrolled",
@@ -65,4 +70,3 @@ exports.checkEnrollmentStatus = async (req, res) => {
       .json({ message: "Failed to check enrollment status" });
   }
 };
-

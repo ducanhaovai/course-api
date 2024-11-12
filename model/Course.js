@@ -114,9 +114,25 @@ class Course {
     }
   }
 
-  static deleteById(id) {
-    return db.query("DELETE FROM courses WHERE id = ?", [id]);
+  static async deleteById(id) {
+    try {
+      // First, delete referencing rows from `payments` table
+      await db.query(
+        "DELETE FROM payments WHERE enrollment_id IN (SELECT id FROM enrollments WHERE course_id = ?)",
+        [id]
+      );
+
+      // Then, delete referencing rows from `enrollments` table
+      await db.query("DELETE FROM enrollments WHERE course_id = ?", [id]);
+
+      // Finally, delete the course
+      const result = await db.query("DELETE FROM courses WHERE id = ?", [id]);
+      return result;
+    } catch (error) {
+      throw error;
+    }
   }
+
   static findPagination(offset, limit) {
     `SELECT courses.*, categories.name AS name 
        FROM courses 
