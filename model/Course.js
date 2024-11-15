@@ -76,7 +76,7 @@ class Course {
   static create(data) {
     const slug = slugify(data.title, { lower: true, strict: true });
     return db.query(
-      "INSERT INTO courses (title, description, instructor_id, price, duration,  thumbnail, published_date, status,  pdf_url , category_id, slug) VALUES (?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO courses (title, description, instructor_id, price, duration,  thumbnail, published_date, status,   category_id, slug) VALUES (?,  ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         data.title,
         data.description,
@@ -86,7 +86,6 @@ class Course {
         data.thumbnail,
         data.published_date,
         data.status,
-        data.pdf_url,
         data.category_id,
         slug,
       ]

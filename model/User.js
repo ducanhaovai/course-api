@@ -140,22 +140,22 @@ const User = {
   findAllByRole: async (role) => {
     return db.query("SELECT id, username FROM users WHERE role = ?", [role]);
   },
-  removeRefreshToken: async (refreshToken) => {
+  removeAccessToken: async (access_token) => {
     return db.query(
       "UPDATE users SET access_token = NULL WHERE access_token = ?",
-      [refreshToken]
+      [access_token]
     );
   },
-  updateRefreshToken: async (id, refreshToken) => {
+  updateAccessToken: async (id, access_token) => {
     return db.query("UPDATE users SET access_token = ? WHERE id = ?", [
-      refreshToken,
+      access_token,
       id,
     ]);
   },
-  findByRefreshToken: async (refreshToken) => {
+  findByAccessToken: async (access_token) => {
     const [rows] = await db.query(
       "SELECT * FROM users WHERE access_token = ?",
-      [refreshToken]
+      [access_token]
     );
     return rows[0];
   },
