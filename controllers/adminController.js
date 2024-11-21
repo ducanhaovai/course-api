@@ -10,6 +10,41 @@ exports.getUsers = async (req, res) => {
       .json({ message: "Error fetching users", error: error.message });
   }
 };
+exports.getUserByID = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error fetching user by ID:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch user", error: error.message });
+  }
+};
+
+exports.getUserBySlug = async (req, res) => {
+  const { slug } = req.params;
+
+  try {
+    const user = await User.findBySlug(slug);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error fetching user by slug:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
 exports.getInstructors = async (req, res) => {
   try {
     const instructors = await User.findAllByRole(2);

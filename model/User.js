@@ -34,6 +34,16 @@ const User = {
       throw new Error("Unable to find user by email");
     }
   },
+  findById: async (id) => {
+    try {
+      const [rows] = await db.query("SELECT * FROM users WHERE id = ?", [id]);
+      return rows[0];
+    } catch (error) {
+      console.error("Error finding user by id:", error);
+      throw new Error("Unable to find user by id");
+    }
+  },
+  
 
   updateAccessToken: async (id, token) => {
     try {

@@ -11,8 +11,6 @@ const courseSectionRoutes = require("./routes/courseSectionRoutes");
 const courseContentRoutes = require("./routes/courseContentRoutes");
 const videoRoutes = require("./routes/videoRoutes");
 
-
-
 const app = express();
 app.use(
   cors({

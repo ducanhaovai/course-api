@@ -84,21 +84,25 @@ exports.getCourseID = async (req, res) => {
   }
 };
 exports.getCourseBySlug = async (req, res) => {
-  const slug = req.params.slug;
   try {
-    const [rows] = await Course.findBySlug(slug);
-    if (rows.length > 0) {
-      return res.json(rows[0]);
-    } else {
-      return res.status(404).json({ message: "Course not found" });
+    const { slug } = req.params;
+    const course = await Course.getCourseBySlug(slug);
+
+    if (!course) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Course not found" });
     }
+
+    return res.status(200).json({ success: true, data: course });
   } catch (error) {
     console.error("Error while fetching course by slug:", error);
-    res
+    return res
       .status(500)
-      .json({ message: "Error fetching course", error: error.message });
+      .json({ success: false, message: "Internal server error" });
   }
 };
+
 exports.getCourseSearch = async (req, res) => {
   const { id, title } = req.query;
   try {
