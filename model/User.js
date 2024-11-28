@@ -1,4 +1,4 @@
-const db = require("../config/dbConfig");
+const { db } = require("../config/dbConfig");
 
 const User = {
   // Tạo người dùng mới
@@ -43,7 +43,6 @@ const User = {
       throw new Error("Unable to find user by id");
     }
   },
-  
 
   updateAccessToken: async (id, token) => {
     try {

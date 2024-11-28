@@ -1,4 +1,4 @@
-const db = require("../config/dbConfig");
+const { db } = require("../config/dbConfig");
 const slugify = require("slugify");
 class Course {
   static findAll() {
@@ -124,11 +124,9 @@ class Course {
     }
     const courseData = result[0];
 
-
     if (typeof courseData.sections === "string") {
       courseData.sections = JSON.parse(courseData.sections);
     }
-
 
     // Đảm bảo rằng sections là một mảng
     if (!Array.isArray(courseData.sections)) {

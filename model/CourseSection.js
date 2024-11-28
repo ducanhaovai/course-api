@@ -1,4 +1,4 @@
-const db = require("../config/dbConfig");
+const { db } = require("../config/dbConfig");
 
 class CourseSection {
   // Tạo phần học mới

@@ -1,8 +1,10 @@
-const mysql = require("mysql2");
+const mysql = require("mysql2/promise");
 const dotenv = require("dotenv");
+const mongoose = require("mongoose");
 
 dotenv.config();
 
+// Setup MariaDB connection
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -14,15 +16,50 @@ const pool = mysql.createPool({
   queueLimit: 0,
   charset: "utf8mb4",
 });
+const db = {
+  query: (sql, params) => pool.query(sql, params),
+};
 
-module.exports = pool.promise();
+// Test MariaDB connection
+const testMariaDBConnection = async () => {
+  try {
+    const [results] = await db.query("SELECT 1 + 1 AS result");
+    console.log("MariaDB connection test successful:", results);
+  } catch (error) {
+    console.error("Error connecting to MariaDB:", error.message);
+    process.exit(1);
+  }
+};
 
-pool
-  .promise()
-  .query("SELECT 1 + 1 AS result")
-  .then(([results, fields]) => {
-    console.log("Connection test successful:", results);
-  })
-  .catch((error) => {
-    console.error("Error connecting to the database:", error);
-  });
+// Setup MongoDB connection
+const connectToMongoDB = async () => {
+  try {
+    const uri = process.env.MONGO_URI;
+    await mongoose.connect(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+
+    console.log("Connected to MongoDB successfully!");
+    mongoose.connection.on("connected", () => {
+      console.log("Mongoose is connected to MongoDB.");
+    });
+    mongoose.connection.on("error", (err) => {
+      console.error("Mongoose connection error:", err.message);
+    });
+    mongoose.connection.on("disconnected", () => {
+      console.warn("Mongoose is disconnected from MongoDB.");
+    });
+  } catch (error) {
+    console.error("Error connecting to MongoDB:", error.message);
+    process.exit(1); // Exit if MongoDB connection fails
+  }
+};
+
+// Invoke MariaDB connection test
+testMariaDBConnection();
+
+module.exports = {
+  db,
+  connectToMongoDB,
+};
