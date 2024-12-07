@@ -23,9 +23,6 @@ exports.getRoomUserMessage = async (req, res) => {
   try {
     const { userId } = req.params;
     const rooms = await Room.find({ members: userId });
-    if (rooms.length === 0) {
-      console.log(`No rooms available for user ID ${userId}`);
-    }
     res.status(200).json(rooms);
   } catch (error) {
     console.error("Failed to fetch rooms for user ID:", userId, error);
@@ -45,7 +42,6 @@ exports.getRoomMessage = async (req, res) => {
 exports.postMessage = async (req, res) => {
   try {
     const { senderId, roomId, message } = req.body;
-    console.log("Received message data:", req.body);
     if (!senderId || !roomId || !message) {
       return res.status(400).json({ error: "Invalid data" });
     }
