@@ -47,8 +47,13 @@ class Course {
         GROUP BY course_id
       ) AS enrollment_counts ON enrollment_counts.course_id = courses.id
     `);
+  } 
+  static async findNameById(id){
+    const [rows] = await db.query(
+      `SELECT title FROM courses WHERE id = ?`, [id]
+    );
+    return rows
   }
-
   static async findById(id) {
     const [rows] = await db.query(
       `SELECT 

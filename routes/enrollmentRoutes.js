@@ -9,4 +9,5 @@ router.get(
   authenticateToken,
   enrollmentsController.checkEnrollmentStatus
 );
+
 module.exports = router;

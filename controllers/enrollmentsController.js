@@ -1,31 +1,57 @@
 const Enrollment = require("../model/Enrollments");
 const Course = require("../model/Course");
+const User = require("../model/User");
 const jwt = require("jsonwebtoken");
+const Notification = require("../model/Notification");
+const mongoose = require("mongoose");
 exports.enrollUser = async (req, res) => {
   const { user_id, course_id } = req.body;
-  const purchaseDate = new Date();
-  const enrollment_status = "pending";
-  const payment_proof = null;
 
   try {
+    console.log(
+      `Starting enrollment for user ${user_id} to course ${course_id}`
+    );
     const result = await Enrollment.create({
       user_id,
       course_id,
-      purchase_date: purchaseDate,
-      enrollment_status,
-      payment_proof,
+      purchase_date: new Date(),
+      enrollment_status: "pending",
+      payment_proof: null,
     });
 
-    const enrollmentId = result.insertId;
-    const [courseDetails] = await Course.findById(course_id);
-
+    const courseDetails = await Course.findById(course_id);
     if (!courseDetails) {
+      console.error("Course not found for ID:", course_id);
       return res.status(404).json({ message: "Course not found" });
+    }
+
+    const admins = await User.findAllByRole(1);
+    console.log(
+      "Admins fetched for notification:",
+      admins.map((a) => a.id)
+    );
+
+    for (const admin of admins) {
+      if (admin && admin.id) {
+        console.log(`Processing notification for admin ${admin.id}`);
+        const newNotification = new Notification({
+          sender_id: user_id,
+          target_role: 1,
+          target_user_id: admin.id,
+          course_id,
+          message: `Người dùng ${user_id} đã đăng ký tham gia khóa học ${course_id}`,
+        });
+
+        const savedNotification = await newNotification.save();
+        io.to(admin.id.toString()).emit("newEnrollment", savedNotification);
+      } else {
+        console.error("Invalid admin object:", admin);
+      }
     }
 
     return res.status(200).json({
       message: "User enrolled successfully",
-      enrollmentId,
+      enrollmentId: result._id,
       courseDetails,
     });
   } catch (error) {
@@ -36,6 +62,7 @@ exports.enrollUser = async (req, res) => {
     });
   }
 };
+
 exports.checkEnrollmentStatus = async (req, res) => {
   try {
     const { course_id } = req.params;
@@ -48,7 +75,6 @@ exports.checkEnrollmentStatus = async (req, res) => {
       course_id
     );
 
-    // Kiểm tra nếu mảng enrollment tồn tại và có phần tử đầu tiên [0][0]
     if (
       !enrollment ||
       enrollment.length === 0 ||
@@ -61,7 +87,7 @@ exports.checkEnrollmentStatus = async (req, res) => {
       });
     }
 
-    const enrollmentStatus = enrollment[0][0].enrollment_status; // Truy cập đúng cấp mảng
+    const enrollmentStatus = enrollment[0][0].enrollment_status;
     return res.status(200).json({ enrollmentStatus });
   } catch (error) {
     console.error("Error checking enrollment status:", error);

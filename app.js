@@ -21,11 +21,13 @@ const courseContentRoutes = require("./routes/courseContentRoutes");
 const videoRoutes = require("./routes/videoRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const Message = require("./model/Message");
-
+const topCourse = require("./routes/topCourseRoutes");
+const notificationsRuotes = require("./routes/notificationRoutes");
+const path = require("path");
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*" } });
-
+global.io = io;
 // Middleware
 app.use(
   cors({
@@ -35,6 +37,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(cookieParser());
 
 const connectToMongoDB = async () => {
@@ -54,6 +57,12 @@ io.on("connection", (socket) => {
     socket.join(roomId);
   });
 
+  const userId = socket.handshake.query.userId;
+  const userRole = socket.handshake.query.userRole;
+
+  if (userRole === 1) {
+    socket.join(`admin-${userId}`);
+  }
   socket.on("sendMessage", async ({ senderId, roomId, message }) => {
     const newMessage = new Message({
       senderId,
@@ -68,6 +77,9 @@ io.on("connection", (socket) => {
     } catch (error) {
       console.error("Failed to save message:", error);
     }
+  });
+  socket.on("userConnected", (userId) => {
+    socket.join(userId);
   });
 
   socket.on("disconnect", () => {});
@@ -84,6 +96,8 @@ app.use("/api/sections", courseSectionRoutes);
 app.use("/api/content", courseContentRoutes);
 app.use("/api/video", videoRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/topcourse", topCourse);
+app.use("/api/notifications", notificationsRuotes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");

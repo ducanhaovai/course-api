@@ -56,7 +56,7 @@ const connectToMongoDB = async () => {
   }
 };
 
-// Invoke MariaDB connection test
+
 testMariaDBConnection();
 
 module.exports = {

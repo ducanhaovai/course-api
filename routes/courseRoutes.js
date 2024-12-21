@@ -14,8 +14,9 @@ router.get("/:slug", courseController.getCourseBySlug);
 router.get("/:id", courseController.getCourseID);
 
 // CRUD routes
-router.post("/", courseController.createCourse);
 router.put("/:id", courseController.updateCourse);
 router.delete("/:id", courseController.deleteCourse);
-
+router.get("/category/:category", courseController.searchCategory);
+router.get("/pagination", courseController.paginationCourse);
+router.post("/course-sections", courseController.createCourseWithSections);
 module.exports = router;

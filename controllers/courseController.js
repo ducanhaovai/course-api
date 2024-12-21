@@ -161,7 +161,6 @@ exports.createCourseWithSections = async (req, res) => {
 
   try {
     const statusValue = status === "active" ? 1 : 0;
-    // Tạo khóa học mới
     const [courseResult] = await Course.create({
       title,
       description,

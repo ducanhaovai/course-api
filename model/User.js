@@ -1,7 +1,6 @@
 const { db } = require("../config/dbConfig");
 
 const User = {
-  // Tạo người dùng mới
   create: async (userData) => {
     try {
       const [result] = await db.query(
@@ -22,7 +21,6 @@ const User = {
     }
   },
 
-  // Tìm người dùng theo email
   findByEmail: async (email) => {
     try {
       const [rows] = await db.query("SELECT * FROM users WHERE email = ?", [
@@ -43,7 +41,6 @@ const User = {
       throw new Error("Unable to find user by id");
     }
   },
-
   updateAccessToken: async (id, token) => {
     try {
       const [result] = await db.query(
@@ -147,8 +144,13 @@ const User = {
     }
   },
   findAllByRole: async (role) => {
-    return db.query("SELECT id, username FROM users WHERE role = ?", [role]);
+    const [results, fields] = await db.query(
+      "SELECT id, username FROM users WHERE role = ?",
+      [role]
+    );
+    return results; 
   },
+
   removeAccessToken: async (access_token) => {
     return db.query(
       "UPDATE users SET access_token = NULL WHERE access_token = ?",
