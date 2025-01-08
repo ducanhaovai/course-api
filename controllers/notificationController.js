@@ -23,7 +23,6 @@ exports.createNotification = async (req, res) => {
   }
 };
 
-// Lấy tất cả thông báo cho một người dùng cụ thể
 exports.getUserNotifications = async (req, res) => {
   const { userId } = req.params;
   try {

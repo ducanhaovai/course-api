@@ -10,4 +10,10 @@ router.get(
   enrollmentsController.checkEnrollmentStatus
 );
 
+router.get(
+  "/user-enrollments",
+  authenticateToken,
+  enrollmentsController.getUserEnrollments
+);
+
 module.exports = router;

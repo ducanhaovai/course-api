@@ -2,40 +2,6 @@ const Course = require("../model/Course");
 const CourseSections = require("../model/CourseSection");
 const CourseContent = require("../model/CourseContent");
 
-exports.updateCourse = async (req, res) => {
-  const courseId = req.params.id;
-  const {
-    title,
-    description,
-    price,
-    duration,
-    category,
-    instructor_id,
-    status,
-    pdf_url,
-  } = req.body;
-
-  try {
-    const course = await Course.findByPk(courseId);
-    if (!course) {
-      return res.status(404).json({ message: "Course not found" });
-    }
-    await course.update({
-      title,
-      description,
-      price,
-      duration,
-      category,
-      instructor_id,
-      status,
-      pdf_url,
-    });
-
-    res.json({ message: "Course updated successfully", course });
-  } catch (error) {
-    res.status(500).json({ message: "Error updating course", error });
-  }
-};
 exports.getCourse = async (req, res) => {
   try {
     const [rows] = await Course.findAll();
@@ -131,20 +97,6 @@ exports.getCourseSearch = async (req, res) => {
   }
 };
 
-exports.createCourse = async (req, res) => {
-  try {
-    const result = await Course.create(req.body);
-    res
-      .status(201)
-      .json({ message: "Course created successfully", course: req.body });
-  } catch (error) {
-    console.error("Error creating the course:", error);
-    res
-      .status(500)
-      .json({ message: "Error creating the course", error: error.message });
-  }
-};
-
 exports.createCourseWithSections = async (req, res) => {
   const {
     title,
@@ -183,7 +135,7 @@ exports.createCourseWithSections = async (req, res) => {
     if (sections && sections.length > 0) {
       for (const section of sections) {
         const [sectionResult] = await CourseSections.create({
-          course_id: courseId, // Truyền `courseId` vào khi tạo section
+          course_id: courseId,
           title: section.title,
           description: section.description,
           video_url: section.video_url,
@@ -193,7 +145,6 @@ exports.createCourseWithSections = async (req, res) => {
 
         const sectionId = sectionResult.insertId;
 
-        // Tạo nội dung (content) cho từng phần (section)
         if (section.contents && section.contents.length > 0) {
           for (const content of section.contents) {
             await CourseContent.create({
@@ -222,20 +173,41 @@ exports.createCourseWithSections = async (req, res) => {
   }
 };
 exports.updateCourse = async (req, res) => {
-  const title = req.params.title;
+  const courseId = req.params.id;
 
   try {
-    const result = await Course.update(title, req.body);
-    if (result.affectedRows > 0) {
-      res.status(200).json({
-        message: "Course updated successfully",
-        updatedData: req.body,
-      });
-    } else {
-      res
-        .status(404)
-        .json({ message: "No changes were made or course not found" });
+    console.log("Received data:", req.body); // Debug output to check received data structure
+
+    // Ensure that course data is provided
+    if (!req.body) {
+      return res
+        .status(400)
+        .json({ message: "Missing course data for update" });
     }
+
+    // Cập nhật thông tin khóa học
+    const courseData = req.body;
+    const courseUpdateResult = await Course.update(courseId, courseData);
+
+    // Check if sections data is present and handle updates
+    if (req.body.sections && Array.isArray(req.body.sections)) {
+      for (const section of req.body.sections) {
+        await CourseSections.update(section.id, section);
+      }
+    }
+
+    // Check if contents data is present and handle updates
+    if (req.body.contents && Array.isArray(req.body.contents)) {
+      for (const content of req.body.contents) {
+        await CourseContent.update(content.id, content);
+      }
+    }
+    
+    res.status(200).json({
+      message: "Course and its sections and contents updated successfully",
+      courseUpdateResult: courseUpdateResult,
+      updatedData: req.body,
+    });
   } catch (error) {
     console.error("Error updating the course:", error);
     res
@@ -243,6 +215,7 @@ exports.updateCourse = async (req, res) => {
       .json({ message: "Error updating the course", error: error.message });
   }
 };
+
 exports.deleteCourse = async (req, res) => {
   try {
     const result = await Course.deleteById(req.params.id);

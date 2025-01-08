@@ -5,7 +5,8 @@ const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const dotenv = require("dotenv");
-
+const initializeWebSocket = require("./config/websocket");
+const rateLimit = require("express-rate-limit");
 // Load environment variables
 dotenv.config();
 
@@ -20,7 +21,7 @@ const courseSectionRoutes = require("./routes/courseSectionRoutes");
 const courseContentRoutes = require("./routes/courseContentRoutes");
 const videoRoutes = require("./routes/videoRoutes");
 const messageRoutes = require("./routes/messageRoutes");
-const Message = require("./model/Message");
+
 const topCourse = require("./routes/topCourseRoutes");
 const notificationsRuotes = require("./routes/notificationRoutes");
 const path = require("path");
@@ -52,39 +53,13 @@ const connectToMongoDB = async () => {
 };
 connectToMongoDB();
 
-io.on("connection", (socket) => {
-  socket.on("joinRoom", ({ roomId }) => {
-    socket.join(roomId);
-  });
-
-  const userId = socket.handshake.query.userId;
-  const userRole = socket.handshake.query.userRole;
-
-  if (userRole === 1) {
-    socket.join(`admin-${userId}`);
-  }
-  socket.on("sendMessage", async ({ senderId, roomId, message }) => {
-    const newMessage = new Message({
-      senderId,
-      roomId,
-      message,
-      createdAt: new Date(),
-    });
-
-    try {
-      const savedMessage = await newMessage.save();
-      io.to(roomId).emit("newMessage", savedMessage);
-    } catch (error) {
-      console.error("Failed to save message:", error);
-    }
-  });
-  socket.on("userConnected", (userId) => {
-    socket.join(userId);
-  });
-
-  socket.on("disconnect", () => {});
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: "Too many requests, please try again later.",
 });
-
+initializeWebSocket(io);
+app.use("/api", apiLimiter);
 // Routes
 app.use("/categories", categoryRoutes);
 app.use("/courses", courseRoutes);

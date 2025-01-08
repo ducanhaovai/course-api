@@ -3,20 +3,18 @@ const jwt = require("jsonwebtoken");
 const User = require("../model/User");
 const {} = require("../utils/helpers");
 const { generateAccessToken } = require("../utils/jwtUtils");
+const Notification = require("../model/Notification");
 
-// Login user
 exports.register = async (req, res) => {
   const { username, email, password, first_name, last_name } = req.body;
-
   try {
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
+
       return res.status(400).json({ message: "Email already in use" });
     }
-
     const hashedPassword = await bcrypt.hash(password, 12);
-
-    await User.create({
+    const newUser = await User.create({
       username,
       email,
       password: hashedPassword,
@@ -24,6 +22,18 @@ exports.register = async (req, res) => {
       last_name,
       role: 3,
     });
+
+    const admins = await User.findAllByRole(1);
+    const notificationPromises = admins.map((admin) => {
+      if (admin && admin.id) {
+        return Notification.create({
+          target_user_id: admin.id,
+          message: `New user registered: ${email}`,
+        });
+      }
+    });
+
+    await Promise.all(notificationPromises);
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
@@ -33,6 +43,7 @@ exports.register = async (req, res) => {
       .json({ message: "Error registering user", error: error.message });
   }
 };
+
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 

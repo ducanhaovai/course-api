@@ -10,7 +10,7 @@ exports.getUsers = async (req, res) => {
       .json({ message: "Error fetching users", error: error.message });
   }
 };
-exports.getUserByID = async (req, res) => {
+exports.  getUserByID = async (req, res) => {
   const { id } = req.params;
   try {
     const user = await User.findById(id);
