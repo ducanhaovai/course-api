@@ -27,6 +27,15 @@ class Enrollment {
       [data.enrollment_status, data.payment_proof, enrollmentId]
     );
   }
+  static findAllByUser(user_id) {
+    return db.query(
+      `SELECT enrollments.*, courses.title, courses.description, courses.thumbnail, courses.slug
+       FROM enrollments
+       JOIN courses ON enrollments.course_id = courses.id
+       WHERE enrollments.user_id = ?`,
+      [user_id]
+    );
+  }
 }
 
 module.exports = Enrollment;

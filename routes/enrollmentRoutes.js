@@ -4,10 +4,12 @@ const enrollmentsController = require("../controllers/enrollmentsController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 
 router.post("/enroll", enrollmentsController.enrollUser);
+router.get("/status/:slug", authenticateToken, enrollmentsController.checkEnrollmentStatus);
+
 router.get(
-  "/status/:course_id",
+  "/user-enrollments",
   authenticateToken,
-  enrollmentsController.checkEnrollmentStatus
+  enrollmentsController.getUserEnrollments
 );
 
 module.exports = router;

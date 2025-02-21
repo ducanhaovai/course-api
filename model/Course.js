@@ -1,7 +1,8 @@
 const { db } = require("../config/dbConfig");
 const slugify = require("slugify");
+
 class Course {
-  static findAll() {
+  static async findAll() {
     return db.query(`
       SELECT 
         courses.*,
@@ -17,7 +18,7 @@ class Course {
               'description', course_sections.description,
               'video_url', IFNULL(course_sections.video_url, ''),
               'is_free', course_sections.is_free,
-              'order', course_sections.order,
+              'order', course_sections.\`order\`,
               'content', IFNULL((
                 SELECT JSON_ARRAYAGG(
                   JSON_OBJECT(
@@ -47,13 +48,13 @@ class Course {
         GROUP BY course_id
       ) AS enrollment_counts ON enrollment_counts.course_id = courses.id
     `);
-  } 
-  static async findNameById(id){
-    const [rows] = await db.query(
-      `SELECT title FROM courses WHERE id = ?`, [id]
-    );
-    return rows
   }
+
+  static async findNameById(id) {
+    const [rows] = await db.query("SELECT title FROM courses WHERE id = ?", [id]);
+    return rows;
+  }
+
   static async findById(id) {
     const [rows] = await db.query(
       `SELECT 
@@ -69,10 +70,10 @@ class Course {
        WHERE courses.id = ?`,
       [id]
     );
-    return rows;
+    return rows[0];
   }
+
   static async getCourseBySlug(slug) {
-    // Thực hiện truy vấn SQL
     const [result] = await db.query(
       `
       SELECT 
@@ -89,7 +90,7 @@ class Course {
               'description', course_sections.description,
               'video_url', IFNULL(course_sections.video_url, ''),
               'is_free', course_sections.is_free,
-              'order', course_sections.order,
+              'order', course_sections.\`order\`,
               'content', IFNULL((
                 SELECT JSON_ARRAYAGG(
                   JSON_OBJECT(
@@ -118,40 +119,35 @@ class Course {
         FROM enrollments
         GROUP BY course_id
       ) AS enrollment_counts ON enrollment_counts.course_id = courses.id
-      WHERE courses.slug = ?
-    `,
+      WHERE courses.slug = ?`,
       [slug]
     );
 
-    if (result.length === 0) {
-      console.error("No course found for slug:", slug);
+    if (!result.length) {
       throw new Error("Course not found");
     }
+
     const courseData = result[0];
-
-    if (typeof courseData.sections === "string") {
-      courseData.sections = JSON.parse(courseData.sections);
-    }
-
-    // Đảm bảo rằng sections là một mảng
-    if (!Array.isArray(courseData.sections)) {
-      console.error("Sections is not an array:", courseData.sections);
-      courseData.sections = [];
-    }
+    courseData.sections = JSON.parse(courseData.sections || "[]");
     return courseData;
   }
 
-  static findByTitle(title) {
-    `SELECT courses.*, categories.name AS name 
-    FROM courses 
-    LEFT JOIN categories ON courses.category_id = categories.id 
-    WHERE courses.title LIKE ?`,
-      [`%${title}%`];
+  static async findByTitle(title) {
+    const [rows] = await db.query(
+      `SELECT courses.*, categories.name AS name 
+      FROM courses 
+      LEFT JOIN categories ON courses.category_id = categories.id 
+      WHERE courses.title LIKE ?`,
+      [`%${title}%`]
+    );
+    return rows;
   }
+
+  // Cập nhật hàm create để lưu các trường mới
   static create(data) {
     const slug = slugify(data.title, { lower: true, strict: true });
     return db.query(
-      "INSERT INTO courses (title, description, instructor_id, price, duration,  thumbnail, published_date, status,   category_id, slug) VALUES (?,  ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO courses (title, description, instructor_id, price, duration, thumbnail, published_date, status, category_id, slug, detailed_description, course_content, course_features, pricing_info, requirements) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         data.title,
         data.description,
@@ -159,63 +155,99 @@ class Course {
         data.price,
         data.duration,
         data.thumbnail,
-        data.published_date,
+        data.published_date || new Date(),
         data.status,
         data.category_id,
         slug,
+        data.detailed_description || "",
+        data.course_content || "",
+        data.course_features || "",
+        data.pricing_info || "",
+        data.requirements || "",
       ]
     );
   }
 
-  static update(id, data) {
-    let query = "UPDATE courses SET ";
-    let parameters = [];
-    let updates = [];
-    for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined) {
-        updates.push(`${key} = ?`);
-        parameters.push(value);
-      }
-    }
-
-    query += updates.join(", ") + " WHERE id = ?";
-    parameters.push(id);
-
-    if (updates.length > 0) {
-      return db.query(query, parameters).then((result) => result[0]);
-    } else {
-      return Promise.resolve({ affectedRows: 0 });
-    }
+  // Cập nhật hàm update để xử lý các trường mới
+  static async update(courseId, data) {
+    const sql = `
+      UPDATE courses
+      SET title = ?, description = ?, price = ?, duration = ?, category_id = ?, instructor_id = ?, status = ?, thumbnail = ?,
+          detailed_description = ?, course_content = ?, course_features = ?, pricing_info = ?, requirements = ?
+      WHERE id = ?
+    `;
+    await db.query(sql, [
+      data.title,
+      data.description,
+      data.price,
+      data.duration,
+      data.category_id,
+      data.instructor_id,
+      data.status,
+      data.thumbnail,
+      data.detailed_description || "",
+      data.course_content || "",
+      data.course_features || "",
+      data.pricing_info || "",
+      data.requirements || "",
+      courseId,
+    ]);
+    return this.findById(courseId);
   }
 
   static async deleteById(id) {
     try {
-      // First, delete referencing rows from `payments` table
       await db.query(
         "DELETE FROM payments WHERE enrollment_id IN (SELECT id FROM enrollments WHERE course_id = ?)",
         [id]
       );
-
-      // Then, delete referencing rows from `enrollments` table
       await db.query("DELETE FROM enrollments WHERE course_id = ?", [id]);
-
-      // Finally, delete the course
-      const result = await db.query("DELETE FROM courses WHERE id = ?", [id]);
-      return result;
+      return db.query("DELETE FROM courses WHERE id = ?", [id]);
     } catch (error) {
       throw error;
     }
   }
 
-  static findPagination(offset, limit) {
-    `SELECT courses.*, categories.name AS name 
+  static async findPagination(offset, limit) {
+    const [rows] = await db.query(
+      `SELECT courses.*, categories.name AS name 
        FROM courses 
        LEFT JOIN categories ON courses.category_id = categories.id 
        LIMIT ? OFFSET ?`,
-      [limit, offset];
+      [limit, offset]
+    );
+    return rows;
   }
-  static countAll() {
-    return db.query("SELECT COUNT(*) AS total FROM courses");
+
+  static async countAll() {
+    const [rows] = await db.query("SELECT COUNT(*) AS total FROM courses");
+    return rows[0].total;
+  }
+
+  static async getAllCategories() {
+    try {
+      const [rows] = await db.query("SELECT id, name FROM categories");
+      return rows;
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      throw error;
+    }
+  }
+
+  static async createCate({ name }) {
+    try {
+      const [result] = await db.query("INSERT INTO categories (name) VALUES (?)", [name]);
+      return { id: result.insertId, name };
+    } catch (error) {
+      console.error("Error creating category:", error);
+      throw error;
+    }
+  }
+
+  static async findBySlug(slug) {
+    const query = "SELECT * FROM courses WHERE slug = ?";
+    const [rows] = await db.query(query, [slug]);
+    return rows[0] || null;
   }
 }
 

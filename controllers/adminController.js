@@ -10,7 +10,7 @@ exports.getUsers = async (req, res) => {
       .json({ message: "Error fetching users", error: error.message });
   }
 };
-exports.getUserByID = async (req, res) => {
+exports.  getUserByID = async (req, res) => {
   const { id } = req.params;
   try {
     const user = await User.findById(id);
@@ -45,14 +45,7 @@ exports.getUserBySlug = async (req, res) => {
   }
 };
 
-exports.getInstructors = async (req, res) => {
-  try {
-    const instructors = await User.findAllByRole(2);
-    res.json({ instructors });
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching instructors", error });
-  }
-};
+
 exports.updateUser = async (req, res) => {
   const { role, username, email, status } = req.body;
   const userId = req.params.id;
@@ -93,10 +86,7 @@ exports.deleteUser = async (req, res) => {
 
 exports.getInstructors = async (req, res) => {
   try {
-    const instructors = await Instructor.findAll({
-      where: { role: 2 },
-      attributes: ["id", "username"],
-    });
+    const instructors = await User.findAllByRole(2);
     res.status(200).json(instructors);
   } catch (error) {
     console.error("Error fetching instructors:", error);

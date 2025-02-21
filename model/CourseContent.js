@@ -30,29 +30,29 @@ class CourseContent {
     );
   }
 
-  static update(id, data) {
-    let query = "UPDATE course_content SET ";
-    let parameters = [];
-    let updates = [];
-    for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined) {
-        updates.push(`${key} = ?`);
-        parameters.push(value);
-      }
-    }
-
-    query += updates.join(", ") + " WHERE id = ?";
-    parameters.push(id);
-
-    if (updates.length > 0) {
-      return db.query(query, parameters).then((result) => result[0]);
-    } else {
-      return Promise.resolve({ affectedRows: 0 });
-    }
+  static async update(contentId, data) {
+    const { content_type, content_url, title, description, order_index } = data;
+    const sql = `
+      UPDATE course_content
+      SET content_type = ?, content_url = ?, title = ?, description = ?, order_index = ?
+      WHERE id = ?
+    `;
+    return db.query(sql, [
+      content_type,
+      content_url,
+      title,
+      description,
+      order_index,
+      contentId,
+    ]);
   }
 
   static deleteById(id) {
     return db.query("DELETE FROM course_content WHERE id = ?", [id]);
+  }
+  static softDelete(contentId) {
+    const sql = "UPDATE course_content SET is_deleted = 1 WHERE id = ?";
+    return db.query(sql, [contentId]);
   }
 }
 

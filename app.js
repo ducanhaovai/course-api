@@ -5,7 +5,8 @@ const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const dotenv = require("dotenv");
-
+const initializeWebSocket = require("./config/websocket");
+const rateLimit = require("express-rate-limit");
 // Load environment variables
 dotenv.config();
 
@@ -20,22 +21,29 @@ const courseSectionRoutes = require("./routes/courseSectionRoutes");
 const courseContentRoutes = require("./routes/courseContentRoutes");
 const videoRoutes = require("./routes/videoRoutes");
 const messageRoutes = require("./routes/messageRoutes");
-const Message = require("./model/Message");
+
 const topCourse = require("./routes/topCourseRoutes");
 const notificationsRuotes = require("./routes/notificationRoutes");
+const { uploadCourses, uploadUserSubmissions } = require('./middleware/Multer');
 const path = require("path");
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, { cors: { origin: "*" } });
+const allowedOrigins = ["http://localhost:3000", "https://levancourse.com"];
+io = new Server(httpServer, {
+  cors: {
+      origin: allowedOrigins,
+      methods: ["GET", "POST"],
+      credentials: true
+  },  
+  transports: ['websocket']
+});
 global.io = io;
 // Middleware
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-    methods: "GET,POST,PUT,DELETE",
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: allowedOrigins,
+  methods: "GET,POST,PUT,DELETE",
+  credentials: true,
+}));
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(cookieParser());
@@ -52,39 +60,13 @@ const connectToMongoDB = async () => {
 };
 connectToMongoDB();
 
-io.on("connection", (socket) => {
-  socket.on("joinRoom", ({ roomId }) => {
-    socket.join(roomId);
-  });
-
-  const userId = socket.handshake.query.userId;
-  const userRole = socket.handshake.query.userRole;
-
-  if (userRole === 1) {
-    socket.join(`admin-${userId}`);
-  }
-  socket.on("sendMessage", async ({ senderId, roomId, message }) => {
-    const newMessage = new Message({
-      senderId,
-      roomId,
-      message,
-      createdAt: new Date(),
-    });
-
-    try {
-      const savedMessage = await newMessage.save();
-      io.to(roomId).emit("newMessage", savedMessage);
-    } catch (error) {
-      console.error("Failed to save message:", error);
-    }
-  });
-  socket.on("userConnected", (userId) => {
-    socket.join(userId);
-  });
-
-  socket.on("disconnect", () => {});
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: "Too many requests, please try again later.",
 });
-
+initializeWebSocket(io);
+// app.use("/api", apiLimiter);
 // Routes
 app.use("/categories", categoryRoutes);
 app.use("/courses", courseRoutes);
@@ -102,6 +84,26 @@ app.use("/api/notifications", notificationsRuotes);
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
+
+app.post('/upload/course', uploadCourses.single('courseFile'), (req, res) => {
+  if (!req.file) {
+      return res.status(400).send('No file uploaded');
+  }
+  const imageUrl = `${req.protocol}://${req.get('host')}/uploads/courses/${req.file.filename}`;
+  console.log({ imageUrl });
+  res.json({ imageUrl});
+});
+
+
+app.post('/upload/user-submission', uploadUserSubmissions.single('userFile'), (req, res) => {
+  if (!req.file) {
+      return res.status(400).send('No user file uploaded');
+  }
+  res.send('User file uploaded successfully');
+});
+// Phục vụ các file static
+app.use('/uploads/courses', express.static('uploads/courses'));
+app.use('/uploads/user-submissions', express.static('uploads/user-submissions'));
 
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {

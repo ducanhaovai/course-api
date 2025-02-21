@@ -2,40 +2,6 @@ const Course = require("../model/Course");
 const CourseSections = require("../model/CourseSection");
 const CourseContent = require("../model/CourseContent");
 
-exports.updateCourse = async (req, res) => {
-  const courseId = req.params.id;
-  const {
-    title,
-    description,
-    price,
-    duration,
-    category,
-    instructor_id,
-    status,
-    pdf_url,
-  } = req.body;
-
-  try {
-    const course = await Course.findByPk(courseId);
-    if (!course) {
-      return res.status(404).json({ message: "Course not found" });
-    }
-    await course.update({
-      title,
-      description,
-      price,
-      duration,
-      category,
-      instructor_id,
-      status,
-      pdf_url,
-    });
-
-    res.json({ message: "Course updated successfully", course });
-  } catch (error) {
-    res.status(500).json({ message: "Error updating course", error });
-  }
-};
 exports.getCourse = async (req, res) => {
   try {
     const [rows] = await Course.findAll();
@@ -49,6 +15,15 @@ exports.getCourse = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error getting courses", error: error.message });
+  }
+};
+exports.getCategories = async (req, res) => {
+  try {
+    const categories = await Course.getAllCategories();
+    res.json(categories);
+  } catch (error) {
+    console.error("Error in getCategories:", error);
+    res.status(500).json({ message: "Error fetching categories" });
   }
 };
 exports.getCourseID = async (req, res) => {
@@ -131,20 +106,6 @@ exports.getCourseSearch = async (req, res) => {
   }
 };
 
-exports.createCourse = async (req, res) => {
-  try {
-    const result = await Course.create(req.body);
-    res
-      .status(201)
-      .json({ message: "Course created successfully", course: req.body });
-  } catch (error) {
-    console.error("Error creating the course:", error);
-    res
-      .status(500)
-      .json({ message: "Error creating the course", error: error.message });
-  }
-};
-
 exports.createCourseWithSections = async (req, res) => {
   const {
     title,
@@ -154,8 +115,12 @@ exports.createCourseWithSections = async (req, res) => {
     category_id,
     instructor_id,
     status,
-    pdf_url,
     thumbnail,
+    detailed_description,
+    course_content,
+    course_features,
+    pricing_info,
+    requirements,
     sections,
   } = req.body;
 
@@ -164,13 +129,17 @@ exports.createCourseWithSections = async (req, res) => {
     const [courseResult] = await Course.create({
       title,
       description,
+      instructor_id,
       price,
       duration,
-      category_id,
-      instructor_id,
-      status: statusValue,
-      pdf_url,
       thumbnail,
+      status,
+      category_id,
+      detailed_description,
+      course_content,
+      course_features,
+      pricing_info,
+      requirements,
     });
 
     const courseId = courseResult.insertId || courseResult.id;
@@ -183,7 +152,7 @@ exports.createCourseWithSections = async (req, res) => {
     if (sections && sections.length > 0) {
       for (const section of sections) {
         const [sectionResult] = await CourseSections.create({
-          course_id: courseId, // Truyền `courseId` vào khi tạo section
+          course_id: courseId,
           title: section.title,
           description: section.description,
           video_url: section.video_url,
@@ -193,7 +162,6 @@ exports.createCourseWithSections = async (req, res) => {
 
         const sectionId = sectionResult.insertId;
 
-        // Tạo nội dung (content) cho từng phần (section)
         if (section.contents && section.contents.length > 0) {
           for (const content of section.contents) {
             await CourseContent.create({
@@ -221,28 +189,115 @@ exports.createCourseWithSections = async (req, res) => {
     });
   }
 };
-exports.updateCourse = async (req, res) => {
-  const title = req.params.title;
-
+exports.addCategory = async (req, res) => {
+  const { name } = req.body;
   try {
-    const result = await Course.update(title, req.body);
-    if (result.affectedRows > 0) {
-      res.status(200).json({
-        message: "Course updated successfully",
-        updatedData: req.body,
-      });
-    } else {
-      res
-        .status(404)
-        .json({ message: "No changes were made or course not found" });
-    }
+
+    const newCategory = await Course.createCate({ name });
+    res.status(201).json(newCategory);
   } catch (error) {
-    console.error("Error updating the course:", error);
-    res
-      .status(500)
-      .json({ message: "Error updating the course", error: error.message });
+    console.error("Error adding category:", error);
+    res.status(500).json({ message: "Error adding category" });
   }
 };
+exports.updateCourse = async (req, res) => {
+  const courseId = req.params.id;
+  const courseData = req.body;
+
+  console.log(`Received update request for course id: ${courseId}`);
+  console.log("Payload received:", JSON.stringify(courseData, null, 2));
+
+  try {
+    if (!courseData) {
+      console.log("No course data provided");
+      return res.status(400).json({ message: "Missing course data for update" });
+    }
+
+    // 1. Cập nhật thông tin chính của khóa học
+    console.log("Updating main course information...");
+    const courseUpdateResult = await Course.update(courseId, courseData);
+    console.log("Course update result:", courseUpdateResult);
+
+    // 2. Duyệt qua các 'sections'
+    if (courseData.sections && Array.isArray(courseData.sections)) {
+      console.log(`Processing ${courseData.sections.length} sections...`);
+      for (const [i, section] of courseData.sections.entries()) {
+        console.log(`Processing section index ${i}:`, JSON.stringify(section, null, 2));
+
+        // Nếu mục bị đánh dấu is_deleted, xóa vĩnh viễn
+        if (section.is_deleted) {
+          if (section.id) {
+            const deleteSectionResult = await CourseSections.deleteById(section.id);
+            console.log(`Section id ${section.id} deleted:`, deleteSectionResult);
+          }
+          continue; // Bỏ qua việc update/create cho section này
+        }
+        let sectionId = section.id;
+
+        if (sectionId) {
+          console.log(`Updating existing section with id ${sectionId}...`);
+          const updateResult = await CourseSections.update(sectionId, section);
+          console.log(`Section id ${sectionId} updated:`, updateResult);
+        } else {
+          console.log("Creating new section...");
+          const [createResult] = await CourseSections.create({
+            ...section,
+            course_id: courseId,
+          });
+          console.log("New section created with result:", createResult);
+          sectionId = createResult.insertId;
+        }
+
+        // Xử lý các nội dung (contents) của section
+        if (section.contents && Array.isArray(section.contents)) {
+          console.log(`Processing ${section.contents.length} contents for section id ${sectionId}...`);
+          for (const [j, content] of section.contents.entries()) {
+            console.log(`Processing content index ${j} for section ${sectionId}:`, JSON.stringify(content, null, 2));
+            if (content.is_deleted) {
+              console.log(`Content at index ${j} is marked as deleted.`);
+              if (content.id) {
+                const deleteContentResult = await CourseContent.deleteById(content.id);
+                console.log(`Content id ${content.id} deleted:`, deleteContentResult);
+              }
+              continue;
+            }
+            if (content.id) {
+              console.log(`Updating existing content with id ${content.id}...`);
+              const contentUpdateResult = await CourseContent.update(content.id, content);
+              console.log(`Content id ${content.id} updated:`, contentUpdateResult);
+            } else {
+              console.log("Creating new content...");
+              const createContentResult = await CourseContent.create({
+                ...content,
+                course_id: courseId,
+                section_id: sectionId,
+              });
+              console.log("New content created with result:", createContentResult);
+            }
+          }
+        } else {
+          console.log(`No contents found for section index ${i}`);
+        }
+      }
+    } else {
+      console.log("No sections found in the payload.");
+    }
+
+    console.log("Update course process complete.");
+    return res.status(200).json({
+      message: "Course, sections, and contents updated successfully",
+      courseUpdateResult,
+      updatedData: courseData,
+    });
+  } catch (error) {
+    console.error("Error updating the course:", error);
+    return res.status(500).json({ message: "Error updating the course", error: error.message });
+  }
+};
+
+
+
+
 exports.deleteCourse = async (req, res) => {
   try {
     const result = await Course.deleteById(req.params.id);

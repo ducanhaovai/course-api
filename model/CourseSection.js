@@ -15,7 +15,10 @@ class CourseSection {
       ]
     );
   }
-
+  static softDelete(sectionId) {
+    const sql = "UPDATE course_sections SET is_deleted = 1 WHERE id = ?";
+    return db.query(sql, [sectionId]);
+  }
   // Lấy tất cả các phần học theo ID của khóa học
   static findByCourseId(courseId) {
     return db.query("SELECT * FROM course_sections WHERE course_id = ?", [
@@ -23,26 +26,21 @@ class CourseSection {
     ]);
   }
 
-  // Cập nhật phần học
-  static update(id, data) {
-    let query = "UPDATE course_sections SET ";
-    let parameters = [];
-    let updates = [];
-    for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined) {
-        updates.push(`${key} = ?`);
-        parameters.push(value);
-      }
-    }
-
-    query += updates.join(", ") + " WHERE id = ?";
-    parameters.push(id);
-
-    if (updates.length > 0) {
-      return db.query(query, parameters).then((result) => result[0]);
-    } else {
-      return Promise.resolve({ affectedRows: 0 });
-    }
+  static async update(sectionId, data) {
+    const { title, description, video_url, is_free, order } = data;
+    const sql = `
+      UPDATE course_sections
+      SET title = ?, description = ?, video_url = ?, is_free = ?, \`order\` = ?
+      WHERE id = ?
+    `;
+    return db.query(sql, [
+      title,
+      description,
+      video_url,
+      is_free,
+      order,
+      sectionId,
+    ]);
   }
 
   // Xóa phần học theo ID
