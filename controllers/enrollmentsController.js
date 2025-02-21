@@ -75,35 +75,39 @@ exports.enrollUser = async (req, res) => {
 
 exports.checkEnrollmentStatus = async (req, res) => {
   try {
-    const { course_id } = req.params;
+    const { slug } = req.params; // lấy slug từ URL
     const token = req.headers.authorization.split(" ")[1];
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
     const user_id = decodedToken.id;
 
-    const enrollment = await Enrollment.findEnrollmentByUserAndCourse(
-      user_id,
-      course_id
-    );
+    // Tìm khóa học theo slug
+    const course = await Course.findBySlug(slug);
+    if (!course) {
+      return res.status(404).json({
+        message: "Course not found",
+        enrollmentStatus: "not_enrolled",
+      });
+    }
 
-    if (
-      !enrollment ||
-      enrollment.length === 0 ||
-      !enrollment[0] ||
-      !enrollment[0][0]
-    ) {
+    // Lấy course id từ course tìm được
+    const course_id = course.id;
+
+    // Gọi model Enrollment để kiểm tra đăng ký
+    const [rows] = await Enrollment.findEnrollmentByUserAndCourse(user_id, course_id);
+    if (!rows || rows.length === 0) {
       return res.status(200).json({
         message: "User not enrolled in this course",
         enrollmentStatus: "not_enrolled",
       });
     }
 
-    const enrollmentStatus = enrollment[0][0].enrollment_status;
+    const enrollmentStatus = rows[0].enrollment_status;
     return res.status(200).json({ enrollmentStatus });
   } catch (error) {
     console.error("Error checking enrollment status:", error);
-    return res
-      .status(500)
-      .json({ message: "Failed to check enrollment status" });
+    return res.status(500).json({
+      message: "Failed to check enrollment status",
+    });
   }
 };
 exports.getUserEnrollments = async (req, res) => {

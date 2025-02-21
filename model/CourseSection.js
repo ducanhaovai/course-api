@@ -15,7 +15,10 @@ class CourseSection {
       ]
     );
   }
-
+  static softDelete(sectionId) {
+    const sql = "UPDATE course_sections SET is_deleted = 1 WHERE id = ?";
+    return db.query(sql, [sectionId]);
+  }
   // Lấy tất cả các phần học theo ID của khóa học
   static findByCourseId(courseId) {
     return db.query("SELECT * FROM course_sections WHERE course_id = ?", [

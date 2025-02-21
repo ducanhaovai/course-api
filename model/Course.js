@@ -51,9 +51,7 @@ class Course {
   }
 
   static async findNameById(id) {
-    const [rows] = await db.query("SELECT title FROM courses WHERE id = ?", [
-      id,
-    ]);
+    const [rows] = await db.query("SELECT title FROM courses WHERE id = ?", [id]);
     return rows;
   }
 
@@ -145,10 +143,11 @@ class Course {
     return rows;
   }
 
+  // Cập nhật hàm create để lưu các trường mới
   static create(data) {
     const slug = slugify(data.title, { lower: true, strict: true });
     return db.query(
-      "INSERT INTO courses (title, description, instructor_id, price, duration, thumbnail, published_date, status, category_id, slug) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO courses (title, description, instructor_id, price, duration, thumbnail, published_date, status, category_id, slug, detailed_description, course_content, course_features, pricing_info, requirements) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         data.title,
         data.description,
@@ -156,21 +155,28 @@ class Course {
         data.price,
         data.duration,
         data.thumbnail,
-        data.published_date,
+        data.published_date || new Date(),
         data.status,
         data.category_id,
         slug,
+        data.detailed_description || "",
+        data.course_content || "",
+        data.course_features || "",
+        data.pricing_info || "",
+        data.requirements || "",
       ]
     );
   }
 
+  // Cập nhật hàm update để xử lý các trường mới
   static async update(courseId, data) {
     const sql = `
       UPDATE courses
-      SET title = ?, description = ?, price = ?, duration = ?, category_id = ?, instructor_id = ?, status = ?, thumbnail = ?
+      SET title = ?, description = ?, price = ?, duration = ?, category_id = ?, instructor_id = ?, status = ?, thumbnail = ?,
+          detailed_description = ?, course_content = ?, course_features = ?, pricing_info = ?, requirements = ?
       WHERE id = ?
     `;
-    return db.query(sql, [
+    await db.query(sql, [
       data.title,
       data.description,
       data.price,
@@ -179,8 +185,14 @@ class Course {
       data.instructor_id,
       data.status,
       data.thumbnail,
+      data.detailed_description || "",
+      data.course_content || "",
+      data.course_features || "",
+      data.pricing_info || "",
+      data.requirements || "",
       courseId,
     ]);
+    return this.findById(courseId);
   }
 
   static async deleteById(id) {
@@ -210,6 +222,32 @@ class Course {
   static async countAll() {
     const [rows] = await db.query("SELECT COUNT(*) AS total FROM courses");
     return rows[0].total;
+  }
+
+  static async getAllCategories() {
+    try {
+      const [rows] = await db.query("SELECT id, name FROM categories");
+      return rows;
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      throw error;
+    }
+  }
+
+  static async createCate({ name }) {
+    try {
+      const [result] = await db.query("INSERT INTO categories (name) VALUES (?)", [name]);
+      return { id: result.insertId, name };
+    } catch (error) {
+      console.error("Error creating category:", error);
+      throw error;
+    }
+  }
+
+  static async findBySlug(slug) {
+    const query = "SELECT * FROM courses WHERE slug = ?";
+    const [rows] = await db.query(query, [slug]);
+    return rows[0] || null;
   }
 }
 

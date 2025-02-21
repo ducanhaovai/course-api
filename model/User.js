@@ -4,7 +4,7 @@ const User = {
   create: async (userData) => {
     try {
       const [result] = await db.query(
-        "INSERT INTO users (username, email, password, first_name, last_name, role) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO users (username, email, password, first_name, last_name, role, verified, verificationToken, otpExpiration) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           userData.username,
           userData.email,
@@ -12,6 +12,9 @@ const User = {
           userData.first_name,
           userData.last_name,
           userData.role,
+          userData.verified,
+          userData.verificationToken,
+          userData.otpExpiration 
         ]
       );
       return result;
@@ -30,6 +33,39 @@ const User = {
     } catch (error) {
       console.error("Error finding user by email:", error);
       throw new Error("Unable to find user by email");
+    }
+  },
+  verifyUser: async (email) => {
+    try {
+      const [result] = await db.query(
+        "UPDATE users SET verified = 1, verificationToken = NULL, otpExpiration = NULL WHERE email = ?",
+        [email]
+      );
+      return result;
+    } catch (error) {
+      console.error("Error verifying user:", error);
+      throw new Error("Unable to verify user");
+    }
+  },
+  deleteByEmail: async (email) => {
+    try {
+      const [result] = await db.query("DELETE FROM users WHERE email = ? AND verified = 0", [email]);
+      return result;
+    } catch (error) {
+      console.error("Error deleting user by email:", error);
+      throw new Error("Unable to delete user");
+    }
+  },
+  updateOTP: async (email, newOtp, newExpiration) => {
+    try {
+      const [result] = await db.query(
+        "UPDATE users SET verificationToken = ?, otpExpiration = ? WHERE email = ? AND verified = 0",
+        [newOtp, newExpiration, email]
+      );
+      return result;
+    } catch (error) {
+      console.error("Error updating OTP:", error);
+      throw new Error("Unable to update OTP");
     }
   },
   findById: async (id) => {

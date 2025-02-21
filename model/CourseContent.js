@@ -50,6 +50,10 @@ class CourseContent {
   static deleteById(id) {
     return db.query("DELETE FROM course_content WHERE id = ?", [id]);
   }
+  static softDelete(contentId) {
+    const sql = "UPDATE course_content SET is_deleted = 1 WHERE id = ?";
+    return db.query(sql, [contentId]);
+  }
 }
 
 module.exports = CourseContent;
