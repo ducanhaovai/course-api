@@ -122,6 +122,7 @@ exports.createCourseWithSections = async (req, res) => {
     pricing_info,
     requirements,
     sections,
+    top,
   } = req.body;
 
   try {
@@ -133,13 +134,14 @@ exports.createCourseWithSections = async (req, res) => {
       price,
       duration,
       thumbnail,
-      status,
+      status: statusValue,
       category_id,
       detailed_description,
       course_content,
       course_features,
       pricing_info,
       requirements,
+      top: top || 0,
     });
 
     const courseId = courseResult.insertId || courseResult.id;

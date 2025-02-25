@@ -143,11 +143,10 @@ class Course {
     return rows;
   }
 
-  // Cập nhật hàm create để lưu các trường mới
   static create(data) {
     const slug = slugify(data.title, { lower: true, strict: true });
     return db.query(
-      "INSERT INTO courses (title, description, instructor_id, price, duration, thumbnail, published_date, status, category_id, slug, detailed_description, course_content, course_features, pricing_info, requirements) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO courses (title, description, instructor_id, price, duration, thumbnail, published_date, status, category_id, slug, detailed_description, course_content, course_features, pricing_info, requirements, top) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         data.title,
         data.description,
@@ -164,11 +163,11 @@ class Course {
         data.course_features || "",
         data.pricing_info || "",
         data.requirements || "",
+        data.top || 0,
       ]
     );
   }
 
-  // Cập nhật hàm update để xử lý các trường mới
   static async update(courseId, data) {
     const sql = `
       UPDATE courses
