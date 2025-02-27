@@ -21,10 +21,10 @@ const courseSectionRoutes = require("./routes/courseSectionRoutes");
 const courseContentRoutes = require("./routes/courseContentRoutes");
 const videoRoutes = require("./routes/videoRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const uploadRoutes= require("./routes/uploadRoutes")
 
 const topCourse = require("./routes/topCourseRoutes");
 const notificationsRuotes = require("./routes/notificationRoutes");
-const { uploadCourses, uploadUserSubmissions } = require('./middleware/Multer');
 const path = require("path");
 const app = express();
 const httpServer = createServer(app);
@@ -68,8 +68,8 @@ const apiLimiter = rateLimit({
 initializeWebSocket(io);
 // app.use("/api", apiLimiter);
 // Routes
-app.use("/categories", categoryRoutes);
-app.use("/courses", courseRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/courses", courseRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
@@ -80,30 +80,13 @@ app.use("/api/video", videoRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/topcourse", topCourse);
 app.use("/api/notifications", notificationsRuotes);
+app.use("/api/upload", uploadRoutes );
 
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-app.post('/upload/course', uploadCourses.single('courseFile'), (req, res) => {
-  if (!req.file) {
-      return res.status(400).send('No file uploaded');
-  }
-  const imageUrl = `${req.protocol}://${req.get('host')}/uploads/courses/${req.file.filename}`;
-  console.log({ imageUrl });
-  res.json({ imageUrl});
-});
 
-
-app.post('/upload/user-submission', uploadUserSubmissions.single('userFile'), (req, res) => {
-  if (!req.file) {
-      return res.status(400).send('No user file uploaded');
-  }
-  res.send('User file uploaded successfully');
-});
-// Phục vụ các file static
-app.use('/uploads/courses', express.static('uploads/courses'));
-app.use('/uploads/user-submissions', express.static('uploads/user-submissions'));
 
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
