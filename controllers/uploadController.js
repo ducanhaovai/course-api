@@ -26,16 +26,13 @@ const uploadUserSubmissions = multer({ storage: userStorage });
 
 
 exports.uploadCourse = (req, res) => {
-  uploadCourses.single('courseFile')(req, res, (err) => {
-    if (err) return res.status(400).send('Error uploading file.');
-    if (!req.file) {
-      return res.status(400).send('No file uploaded');
-    }
+  if (!req.file) {
+    return res.status(400).send('No file uploaded');
+  }
 
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/courses/${req.file.filename}`;
-    console.log({ imageUrl });
-    res.json({ imageUrl });
-  });
+  const imageUrl = `${req.protocol}://${req.get('host')}/uploads/courses/${req.file.filename}`;
+  console.log({ imageUrl });
+  res.json({ imageUrl });
 };
 
 exports.uploadUserSubmission = (req, res) => {
