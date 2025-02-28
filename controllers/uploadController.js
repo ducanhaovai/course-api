@@ -29,7 +29,6 @@ exports.uploadCourse = (req, res) => {
   if (!req.file) {
     return res.status(400).send('No file uploaded');
   }
-
   const imageUrl = `${req.protocol}://${req.get('host')}/uploads/courses/${req.file.filename}`;
   console.log({ imageUrl });
   res.json({ imageUrl });
