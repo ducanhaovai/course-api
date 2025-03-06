@@ -26,9 +26,11 @@ const uploadRoutes= require("./routes/uploadRoutes")
 const topCourse = require("./routes/topCourseRoutes");
 const notificationsRuotes = require("./routes/notificationRoutes");
 const path = require("path");
+const { authenticateToken } = require("./middleware/authMiddleware");
 const app = express();
 const httpServer = createServer(app);
 const allowedOrigins = ["http://localhost:3000", "https://levancourse.com"];
+
 io = new Server(httpServer, {
   cors: {
       origin: allowedOrigins,
@@ -66,21 +68,20 @@ const apiLimiter = rateLimit({
   message: "Too many requests, please try again later.",
 });
 initializeWebSocket(io);
-// app.use("/api", apiLimiter);
-// Routes
-app.use("/api/categories", categoryRoutes);
-app.use("/api/courses", courseRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/enrollments", enrollmentRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/sections", courseSectionRoutes);
-app.use("/api/content", courseContentRoutes);
-app.use("/api/video", videoRoutes);
-app.use("/api/messages", messageRoutes);
-app.use("/api/topcourse", topCourse);
-app.use("/api/notifications", notificationsRuotes);
-app.use("/api/upload", uploadRoutes );
+
+app.use("/api/categories",authenticateToken ,categoryRoutes);
+app.use("/api/courses",authenticateToken, courseRoutes);
+app.use("/api/auth",authRoutes);
+app.use("/api/admin", authenticateToken,adminRoutes);
+app.use("/api/enrollments", authenticateToken,enrollmentRoutes);
+app.use("/api/payments", authenticateToken,paymentRoutes);
+app.use("/api/sections", authenticateToken,courseSectionRoutes);
+app.use("/api/content", authenticateToken,courseContentRoutes);
+app.use("/api/video", authenticateToken,videoRoutes);
+app.use("/api/messages", authenticateToken,messageRoutes);
+app.use("/api/topcourse", authenticateToken,topCourse);
+app.use("/api/notifications", authenticateToken,notificationsRuotes);
+app.use("/api/upload", authenticateToken,uploadRoutes );
 
 app.get("/", (req, res) => {
   res.send("API is running...");

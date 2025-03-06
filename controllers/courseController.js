@@ -17,6 +17,17 @@ exports.getCourse = async (req, res) => {
       .json({ message: "Error getting courses", error: error.message });
   }
 };
+exports.getCourseBasic = async (req, res) => {
+  try {
+    const [rows] = await Course.findAllBasic();
+    res.json(rows);
+  } catch (error) {
+    console.error("Error while fetching basic courses:", error);
+    res.status(500).json({ message: "Error getting courses", error: error.message });
+  }
+};
+
+
 exports.getCategories = async (req, res) => {
   try {
     const categories = await Course.getAllCategories();

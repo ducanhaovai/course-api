@@ -125,7 +125,6 @@ exports.login = async (req, res) => {
         .json({ message: "Email hoặc mật khẩu không chính xác." });
     }
 
-    // Kiểm tra xem tài khoản đã được xác thực chưa
     if (!user.verified) {
       return res.status(401).json({
         message: "Tài khoản chưa được xác thực. Vui lòng kiểm tra email của bạn để xác thực tài khoản.",

@@ -4,6 +4,7 @@ const courseController = require("../controllers/courseController");
 
 // Order matters: place specific routes before general ones
 router.get("/", courseController.getCourse);
+router.get("/basic", courseController.getCourseBasic);
 router.get("/search", courseController.getCourseSearch);
 router.get("/category", courseController.getCategories);
 router.get("/pagination", courseController.paginationCourse);

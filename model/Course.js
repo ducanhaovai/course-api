@@ -49,6 +49,34 @@ class Course {
       ) AS enrollment_counts ON enrollment_counts.course_id = courses.id
     `);
   }
+  static async findAllBasic() {
+    return db.query(`
+      SELECT 
+        courses.*,
+        categories.name AS category_name, 
+        users.first_name AS instructor_first_name, 
+        users.last_name AS instructor_last_name,
+        COALESCE(enrollment_counts.total_enrollments, 0) AS total_enrollments,
+        COALESCE(section_counts.total_sections, 0) AS total_sections
+      FROM 
+        courses
+      LEFT JOIN categories ON courses.category_id = categories.id
+      LEFT JOIN users ON courses.instructor_id = users.id
+      LEFT JOIN (
+        SELECT course_id, COUNT(*) AS total_enrollments
+        FROM enrollments
+        GROUP BY course_id
+      ) AS enrollment_counts ON enrollment_counts.course_id = courses.id
+      LEFT JOIN (
+        SELECT course_id, COUNT(*) AS total_sections
+        FROM course_sections
+        GROUP BY course_id
+      ) AS section_counts ON section_counts.course_id = courses.id
+    `);
+  }
+  
+  
+  
 
   static async findNameById(id) {
     const [rows] = await db.query("SELECT title FROM courses WHERE id = ?", [id]);

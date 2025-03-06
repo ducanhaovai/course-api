@@ -12,7 +12,7 @@ const {
   trickle,
 } = require("../controllers/videoController");
 
-// Middleware để xác thực yêu cầu liên quan đến luồng
+
 function validateStreamRequest(req, res, next) {
   const { sessionId, handleId } = req.params;
   const streamId = req.body.id || req.body.streamId || req.body?.body?.id;
@@ -25,7 +25,6 @@ function validateStreamRequest(req, res, next) {
   next();
 }
 
-// Định nghĩa các tuyến đường
 router.get("/list-video/:sessionId/:handleId", listStreams);
 router.post("/upload-video", uploadVideo, uploadVideoHandler);
 router.post("/create-session", createSession);

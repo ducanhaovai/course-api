@@ -8,7 +8,6 @@ exports.enrollUser = async (req, res) => {
   const { user_id, course_id } = req.body;
 
   try {
-    // Create the enrollment entry
     const result = await Enrollment.create({
       user_id,
       course_id,
@@ -17,32 +16,21 @@ exports.enrollUser = async (req, res) => {
       payment_proof: null,
     });
 
-    // Retrieve course details
     const courseDetails = await Course.findById(course_id);
-    console.log("dta", courseDetails);
     if (!courseDetails) {
       console.error("Course not found for ID:", course_id);
       return res.status(404).json({ message: "Course not found" });
     }
-
-    // Retrieve user details
     const user = await User.findById(user_id);
     if (!user) {
       console.error("User not found for ID:", user_id);
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Retrieve all admins
     const admins = await User.findAllByRole(1);
-    console.log(
-      "Admins fetched for notification:",
-      admins.map((a) => a.id)
-    );
 
-    // Notify all admins about the new enrollment
     for (const admin of admins) {
       if (admin && admin.id) {
-        console.log(`Processing notification for admin ${admin.id}`);
         await Notification.create({
           sender_id: user_id,
           target_user_id: admin.id,

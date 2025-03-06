@@ -34,8 +34,8 @@ const isAdmin = (req, res, next) => {
 router.put("/users/role/:id", isAdmin, updateUser);
 router.put("/users/info/:id", isAdmin, updateUser);
 router.delete("/users/delete/:id", isAdmin, deleteUser);
-router.get("/users/:id", getUserByID);
-router.get("/users", getUsers);
+router.get("/users/:id",isAdmin, getUserByID);
+router.get("/users",isAdmin, getUsers);
 router.get("/logout", isAdmin, logout);
 router.get("/instructors", isAdmin, getInstructors);
 module.exports = router;
