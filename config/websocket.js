@@ -63,8 +63,4 @@ module.exports = (io) => {
     });
   });
 
-  // Kiểm tra và in số lượng client đang kết nối mỗi 5 giây
-  setInterval(() => {
-    console.log("Số client kết nối hiện tại:", io.engine.clientsCount);
-  }, 500000);
 };

@@ -81,7 +81,7 @@ app.use("/api/video", authenticateToken,videoRoutes);
 app.use("/api/messages", authenticateToken,messageRoutes);
 app.use("/api/topcourse", authenticateToken,topCourse);
 app.use("/api/notifications", authenticateToken,notificationsRuotes);
-app.use("/api/upload", authenticateToken,uploadRoutes );
+app.use("/api/upload", authenticateToken,uploadRoutes, express.static(path.join(__dirname, 'uploads')) );
 
 app.get("/", (req, res) => {
   res.send("API is running...");

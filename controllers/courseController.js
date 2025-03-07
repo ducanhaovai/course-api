@@ -1,7 +1,9 @@
 const Course = require("../model/Course");
 const CourseSections = require("../model/CourseSection");
 const CourseContent = require("../model/CourseContent");
-
+const fs = require('fs');
+const slugify = require('slugify');
+const path = require('path');
 exports.getCourse = async (req, res) => {
   try {
     const [rows] = await Course.findAll();
@@ -126,7 +128,7 @@ exports.createCourseWithSections = async (req, res) => {
     category_id,
     instructor_id,
     status,
-    thumbnail,
+    thumbnail, 
     detailed_description,
     course_content,
     course_features,
@@ -137,14 +139,26 @@ exports.createCourseWithSections = async (req, res) => {
   } = req.body;
 
   try {
+    let courseThumbnail = thumbnail;
+    // Nếu có file upload, chuyển đổi file path thành URL đầy đủ
+    if (req.files && req.files.length > 0) {
+      const imageFile = req.files.find((f) => f.fieldname === "courseImage");
+      if (imageFile) {
+        const filePath = imageFile.path.replace(/\\/g, "/");
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        courseThumbnail = `${baseUrl}/${filePath}`;
+      }
+    }
+
     const statusValue = status === "active" ? 1 : 0;
+
     const [courseResult] = await Course.create({
       title,
       description,
       instructor_id,
       price,
       duration,
-      thumbnail,
+      thumbnail: courseThumbnail,
       status: statusValue,
       category_id,
       detailed_description,
@@ -162,8 +176,30 @@ exports.createCourseWithSections = async (req, res) => {
         .json({ message: "Failed to create course. `course_id` is null." });
     }
 
-    if (sections && sections.length > 0) {
-      for (const section of sections) {
+    // Kiểm tra sections
+    let parsedSections = [];
+    if (sections) {
+      if (typeof sections === "string") {
+        parsedSections = JSON.parse(sections);
+      } else {
+        parsedSections = sections;
+      }
+    }
+
+    // Lấy các file "documentFile" (nếu có)
+    let documentFiles = [];
+    if (req.files && req.files.length > 0) {
+      documentFiles = req.files.filter((f) => f.fieldname === "documentFile");
+    }
+
+    // docIndex để gán tuần tự cho mỗi content "document"
+    let docIndex = 0;
+
+    // Tạo các section và nội dung (content)
+    if (parsedSections && parsedSections.length > 0) {
+      for (const [secIdx, section] of parsedSections.entries()) {
+
+
         const [sectionResult] = await CourseSections.create({
           course_id: courseId,
           title: section.title,
@@ -172,16 +208,31 @@ exports.createCourseWithSections = async (req, res) => {
           is_free: section.is_free,
           order: section.order,
         });
-
         const sectionId = sectionResult.insertId;
 
         if (section.contents && section.contents.length > 0) {
-          for (const content of section.contents) {
+          for (const [contentIdx, content] of section.contents.entries()) {
+
+            let contentUrl = content.content_url || "";
+
+            if (content.content_type === "document") {
+
+
+              if (docIndex < documentFiles.length) {
+                let docPath = documentFiles[docIndex].path.replace(/\\/g, "/");
+                const baseUrl = `${req.protocol}://${req.get('host')}`;
+                contentUrl = `${baseUrl}/${docPath}`;
+                docIndex++;
+              } else {
+                contentUrl = "";
+              }
+            }
+
             await CourseContent.create({
               course_id: courseId,
               section_id: sectionId,
               content_type: content.content_type,
-              content_url: content.content_url,
+              content_url: contentUrl,
               title: content.title,
               description: content.description,
               order_index: content.order_index,
@@ -191,17 +242,19 @@ exports.createCourseWithSections = async (req, res) => {
       }
     }
 
-    res
+    return res
       .status(201)
       .json({ message: "Course with sections created successfully!" });
   } catch (error) {
     console.error("Error creating course with sections:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Error creating course with sections",
       error: error.message,
     });
   }
 };
+
+
 exports.addCategory = async (req, res) => {
   const { name } = req.body;
   try {
@@ -215,77 +268,93 @@ exports.addCategory = async (req, res) => {
 };
 exports.updateCourse = async (req, res) => {
   const courseId = req.params.id;
-  const courseData = req.body;
+  let courseData = req.body;
+  try {
+    if (typeof courseData.sections === "string") {
+      courseData.sections = JSON.parse(courseData.sections);
+    }
+  } catch (error) {
+    console.error("Error parsing sections JSON:", error);
+    return res.status(400).json({ message: "Invalid sections data" });
+  }
 
-  console.log(`Received update request for course id: ${courseId}`);
-  console.log("Payload received:", JSON.stringify(courseData, null, 2));
+
 
   try {
     if (!courseData) {
-      console.log("No course data provided");
+
       return res.status(400).json({ message: "Missing course data for update" });
     }
 
-    // 1. Cập nhật thông tin chính của khóa học
-    console.log("Updating main course information...");
-    const courseUpdateResult = await Course.update(courseId, courseData);
-    console.log("Course update result:", courseUpdateResult);
 
-    // 2. Duyệt qua các 'sections'
+    const courseUpdateResult = await Course.update(courseId, courseData);
+
+    // Nếu có file đính kèm cho document, thu thập chúng từ req.files
+    const documentFiles = req.files ? req.files.filter(file => file.fieldname === "documentFile") : [];
+    let docIndex = 0;
+
     if (courseData.sections && Array.isArray(courseData.sections)) {
-      console.log(`Processing ${courseData.sections.length} sections...`);
+
       for (const [i, section] of courseData.sections.entries()) {
-        console.log(`Processing section index ${i}:`, JSON.stringify(section, null, 2));
 
         // Nếu mục bị đánh dấu is_deleted, xóa vĩnh viễn
         if (section.is_deleted) {
           if (section.id) {
             const deleteSectionResult = await CourseSections.deleteById(section.id);
-            console.log(`Section id ${section.id} deleted:`, deleteSectionResult);
           }
-          continue; // Bỏ qua việc update/create cho section này
+          continue;
         }
         let sectionId = section.id;
 
         if (sectionId) {
-          console.log(`Updating existing section with id ${sectionId}...`);
           const updateResult = await CourseSections.update(sectionId, section);
-          console.log(`Section id ${sectionId} updated:`, updateResult);
         } else {
-          console.log("Creating new section...");
           const [createResult] = await CourseSections.create({
             ...section,
             course_id: courseId,
           });
-          console.log("New section created with result:", createResult);
+
           sectionId = createResult.insertId;
         }
 
         // Xử lý các nội dung (contents) của section
         if (section.contents && Array.isArray(section.contents)) {
-          console.log(`Processing ${section.contents.length} contents for section id ${sectionId}...`);
+
           for (const [j, content] of section.contents.entries()) {
-            console.log(`Processing content index ${j} for section ${sectionId}:`, JSON.stringify(content, null, 2));
+
+
+            // Nếu nội dung là document và có file được upload trong req.files, lấy file theo thứ tự
+            if (content.content_type === "document") {
+              if (docIndex < documentFiles.length) {
+                // Ở đây ta lấy đường dẫn file đã lưu (ví dụ: file.path)
+                content.content_url = documentFiles[docIndex].path;
+
+                docIndex++;
+              } else {
+                console.log(`No document file found for content index ${j}`);
+              }
+            }
+
             if (content.is_deleted) {
-              console.log(`Content at index ${j} is marked as deleted.`);
+
               if (content.id) {
                 const deleteContentResult = await CourseContent.deleteById(content.id);
-                console.log(`Content id ${content.id} deleted:`, deleteContentResult);
+
               }
               continue;
             }
             if (content.id) {
-              console.log(`Updating existing content with id ${content.id}...`);
+
               const contentUpdateResult = await CourseContent.update(content.id, content);
-              console.log(`Content id ${content.id} updated:`, contentUpdateResult);
+
             } else {
-              console.log("Creating new content...");
+
               const createContentResult = await CourseContent.create({
                 ...content,
                 course_id: courseId,
                 section_id: sectionId,
               });
-              console.log("New content created with result:", createContentResult);
+
             }
           }
         } else {
@@ -296,7 +365,7 @@ exports.updateCourse = async (req, res) => {
       console.log("No sections found in the payload.");
     }
 
-    console.log("Update course process complete.");
+
     return res.status(200).json({
       message: "Course, sections, and contents updated successfully",
       courseUpdateResult,
@@ -307,6 +376,7 @@ exports.updateCourse = async (req, res) => {
     return res.status(500).json({ message: "Error updating the course", error: error.message });
   }
 };
+
 
 
 

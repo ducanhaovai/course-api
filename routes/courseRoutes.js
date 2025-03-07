@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const courseController = require("../controllers/courseController");
+const { uploadCourses } = require("../middleware/Multer");
 
 // Order matters: place specific routes before general ones
 router.get("/", courseController.getCourse);
@@ -20,6 +21,6 @@ router.put("/:id", courseController.updateCourse);
 router.delete("/:id", courseController.deleteCourse);
 router.get("/category/:category", courseController.searchCategory);
 router.get("/pagination", courseController.paginationCourse);
-router.post("/course-sections", courseController.createCourseWithSections);
+router.post("/course-sections", uploadCourses.any(), courseController.createCourseWithSections);
 module.exports = router;
     

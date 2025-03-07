@@ -338,7 +338,7 @@ exports.trickle = async (req, res) => {
   const { candidate } = req.body;
 
   try {
-    console.log("Sending ICE candidate to Janus:", candidate);
+
 
     await sendJanusRequest(`${API_URL}/${sessionId}/${handleId}`, {
       janus: "trickle",
